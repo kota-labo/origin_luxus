@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "Bash(if not:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(sed -n '260,280p' \"/c/Users/nyach/OneDrive/デスクトップ/private/OneDrive/ドキュメント/GitHub/Luxus/style.css\")",
+      "Bash(sed -n '525,545p' \"/c/Users/nyach/OneDrive/デスクトップ/private/OneDrive/ドキュメント/GitHub/Luxus/style.css\")",
+      "Bash(sed -n '710,800p' \"/c/Users/nyach/OneDrive/デスクトップ/private/OneDrive/ドキュメント/GitHub/Luxus/style.css\")",
+      "Bash(node -e \":*)",
+      "Bash(node --input-type=module -e \":*)",
+      "Bash(find C:UsersnyachOneDriveデスクトップprivateOneDriveドキュメントGitHubLuxus -name components.js -o -name store.js -o -name *.config.js)",
+      "Bash(grep -r \"Math.random\\\\|eval\\\\|new Function\\\\|innerHTML.*$\\\\|insertAdjacentHTML.*$\" C:UsersnyachOneDriveデスクトップprivateOneDriveドキュメントGitHubLuxussrc)"
+    ]
+  }
+}

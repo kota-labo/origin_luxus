@@ -1,0 +1,1 @@
+import{D as a}from"./drawGame-BAfG3TlJ.js";import{e as r,d as t}from"./evaluator-CFPWFLmZ.js";import"./card-BOI2qG2_.js";class s extends a{evaluateHand(e){return r(e)}determineWinners(e){return t(e)}}export{s as BadugiGame};

@@ -1,0 +1,13 @@
+{
+  "name": "luxus-poker-platform",
+  "version": "2.0.0",
+  "description": "Luxus Poker Platform — NLH / 2-7 Triple Draw / Badugi",
+  "scripts": {
+    "dev":     "vite --port 8080 --host",
+    "build":   "vite build",
+    "preview": "vite preview --port 8080"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

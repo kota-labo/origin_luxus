@@ -1,0 +1,1 @@
+const a={gameId:"badugi",displayName:"Badugi",icon:"◆",hasCommunityCards:!1,hasDrawPhase:!0,numDrawRounds:3,numHoleCards:4,maxPlayers:6,minPlayers:2,handRanking:"badugi",bettingStructure:"fixed-limit",smallBet:10,bigBet:20,maxRaisesPerRound:4,hasBlinds:!0,smallBlind:5,bigBlind:10,startingBBs:100,aceIsLow:!0};export{a as default};
