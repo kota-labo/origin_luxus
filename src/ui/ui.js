@@ -23,25 +23,25 @@ const SEATS_WIDE = {
 };
 
 // スマホ縦向き (≤500px) 専用の座席配置
-// ※ y=22% 以上: position:fixed の game-header（〜44px）+ シート半高（〜45px）を確保
+// ※ 左右プレイヤーを外側に寄せてコミュニティカードとの重なりを防止
 const MOBILE_SEATS = {
   2: [[50,83],[50,22]],
-  3: [[50,83],[22,32],[78,32]],
-  4: [[50,83],[21,34],[50,22],[79,34]], // 上中央(y=22)、左右(y=34)で重ならない配置
-  5: [[50,83],[21,63],[30,22],[70,22],[79,63]],
-  // 6人: 左右を22%まで寄せてDバッジ・役判定のクリッピングを防止
-  6: [[50,85],[22,65],[22,28],[50,22],[78,28],[78,65]],
+  3: [[50,83],[16,32],[84,32]],
+  4: [[50,83],[14,35],[50,22],[86,35]],
+  5: [[50,83],[14,64],[27,22],[73,22],[86,64]],
+  // 6人: 左右を段違い（y=30/66）にして中央との重なりを防止
+  6: [[50,85],[18,66],[15,30],[50,22],[85,30],[82,66]],
 };
 
 // スマホ縦向き: 5枚ホールカードゲーム用
-// 5枚×28px+4gap×2px=148px → 320px画面で 28%=89.6px、左端=89.6-74=15.6px ✓
+// 上プレイヤーy=14%: ヘッダー直下（44px/ring高さ）に寄せる
 const MOBILE_SEATS_WIDE = {
-  2: [[50,83],[50,22]],
+  2: [[50,83],[50,14]],
   3: [[50,83],[26,32],[74,32]],
-  4: [[50,83],[24,34],[50,22],[76,34]], // 上中央(y=22)、左右(y=34)で重ならない配置
-  5: [[50,83],[28,62],[30,22],[70,22],[72,62]],
+  4: [[50,83],[24,34],[50,14],[76,34]],
+  5: [[50,83],[28,62],[30,14],[70,14],[72,62]],
   // 6人Fix Limit: 拡大テーブルviewport(~764px)で垂直間隔が十分広がる
-  6: [[50,85],[28,65],[26,28],[50,22],[74,28],[72,65]],
+  6: [[50,85],[28,65],[26,28],[50,14],[74,28],[72,65]],
 };
 
 const COLORS = ['#1e88e5','#8e24aa','#00897b','#e53935','#fb8c00','#43a047'];
@@ -83,6 +83,9 @@ let _humanDrawAnimCount = 0;
 // バブルアニメーション管理: Setに含まれるIDのバブルのみ ab-new クラスを付与して入場アニメ
 // requestAnimationFrame でクリア → 次の renderAll() では settled（静的）扱いになる
 let freshBubblePids = new Set();
+
+// FOLD バブルのラウンド追跡: { [playerId]: stateName } — そのラウンド中は透過しない
+let foldBubbleState = {};
 
 // ドロー実行フェーズ中（全員宣言後のカード交換アニメーション / DOM直接操作中）
 let _inDrawExecution = false;
@@ -136,7 +139,7 @@ function startNewHand() {
   if (ov) ov.classList.add('hidden');
   if (adapter.state === 'COMPLETE') adapter.nextHand();
 
-  lastActions = {}; lastActorId = -1; freshBubblePids = new Set();
+  lastActions = {}; lastActorId = -1; freshBubblePids = new Set(); foldBubbleState = {};
   prevStreet = null; lastAnimatedStreet = null;
   mobileRaiseAmount = 0; mobileCustomMode = false;
   selectedDrawIndices = new Set(); _humanDrawAnimCount = 0;
@@ -397,8 +400,10 @@ function renderPlayers() {
 
     const la     = lastActions[i];
     const isNew  = freshBubblePids.has(i);
+    // FOLDバブル: フォールドしたラウンド中は ab-fold-active（透過しない）
+    const isFoldActive = la?.type === 'fold' && foldBubbleState[i] === adapter.state;
     const bubble = (la && !isSD)
-      ? `<div class="action-bubble ab-${la.type}${isNew?' ab-new':''}">${la.label}</div>` : '';
+      ? `<div class="action-bubble ab-${la.type}${isNew?' ab-new':''}${isFoldActive?' ab-fold-active':''}">${la.label}</div>` : '';
     const arrow  = isActive ? '<span class="turn-arrow">▶</span>' : '';
 
     const posLbl    = getPos(i);
@@ -535,6 +540,21 @@ function renderActions() {
     return;
   }
 
+  const p = adapter.players[0];
+
+  // フォールド済み（DRAW_フェーズ含む — 先に処理してスタイル崩れを防止）
+  if (p.folded) {
+    const bar = mkBar();
+    if (adapter.state === 'COMPLETE' || adapter.state === 'SHOWDOWN') {
+      const b = mkBtn('deal', 'NEXT HAND'); b.onclick = startNewHand;
+      bar.appendChild(b);
+    } else if (adapter.currentPlayerIndex !== 0) {
+      const b = mkBtn('deal', 'NEXT HAND'); b.onclick = fastForwardHand;
+      bar.appendChild(b);
+    }
+    el.appendChild(bar); return;
+  }
+
   // ドローフェーズ
   if (gameConfig.hasDrawPhase && adapter.state && adapter.state.startsWith('DRAW_')) {
     renderDrawPhaseActions(el);
@@ -550,24 +570,12 @@ function renderActions() {
     bar.appendChild(msg); el.appendChild(bar); return;
   }
 
-  // SHOWDOWN / COMPLETE
+  // SHOWDOWN / COMPLETE（非フォールド）
   if (adapter.state === 'COMPLETE' || adapter.state === 'SHOWDOWN') {
     if (_showdownDelayActive) { el.appendChild(mkBar()); return; } // リビール演出中はボタン非表示
     const bar = mkBar();
     const b   = mkBtn('deal', 'NEXT HAND'); b.onclick = startNewHand;
     bar.appendChild(b); el.appendChild(bar); return;
-  }
-
-  const p = adapter.players[0];
-
-  // フォールド済み
-  if (p.folded && adapter.currentPlayerIndex !== 0) {
-    const bar = mkBar();
-    const b   = mkBtn('deal', 'NEXT HAND'); b.onclick = fastForwardHand;
-    bar.appendChild(b); el.appendChild(bar);
-    if (adapter.state !== 'COMPLETE' && adapter.state !== 'SHOWDOWN')
-      setTimeout(cpuTurn, 550);
-    return;
   }
 
   // CPUターン
@@ -661,14 +669,6 @@ function renderActions() {
 // カード選択は renderPlayers() 内で座席カードをクリック可能にして行う。
 // ここはボタン確認エリアのみ表示する。
 function renderDrawPhaseActions(el) {
-  // フォールド済み: NLHと同じ NEXT HAND ボタンを表示
-  if (adapter.players[0].folded) {
-    const bar = mkBar();
-    const b   = mkBtn('deal', 'NEXT HAND'); b.onclick = fastForwardHand;
-    bar.appendChild(b); el.appendChild(bar);
-    return;
-  }
-
   // ドロー実行フェーズ中（アニメーション演出中）
   if (_inDrawExecution) {
     const bar = mkBar();
@@ -893,6 +893,24 @@ function renderMobileActions() {
     wrap.appendChild(msg); el.appendChild(wrap); return;
   }
 
+  const p = adapter.players[0];
+
+  // フォールド済み（DRAW_フェーズ含む — 先に処理して mob-deal スタイルを統一）
+  if (p.folded) {
+    const wrap = document.createElement('div');
+    wrap.className = 'mobile-action-wrap mob-simple-wrap';
+    if (adapter.state === 'COMPLETE' || adapter.state === 'SHOWDOWN') {
+      const b = document.createElement('button');
+      b.className = 'mob-btn mob-deal'; b.textContent = 'NEXT HAND'; b.onclick = startNewHand;
+      wrap.appendChild(b);
+    } else if (adapter.currentPlayerIndex !== 0) {
+      const b = document.createElement('button');
+      b.className = 'mob-btn mob-deal'; b.textContent = 'NEXT HAND'; b.onclick = fastForwardHand;
+      wrap.appendChild(b);
+    }
+    el.appendChild(wrap); return;
+  }
+
   // ドローフェーズ
   if (gameConfig.hasDrawPhase && adapter.state && adapter.state.startsWith('DRAW_')) {
     renderDrawPhaseActions(el);
@@ -913,19 +931,6 @@ function renderMobileActions() {
     const b = document.createElement('button');
     b.className = 'mob-btn mob-deal'; b.textContent = 'NEXT HAND'; b.onclick = startNewHand;
     wrap.appendChild(b); el.appendChild(wrap); return;
-  }
-
-  const p = adapter.players[0];
-
-  if (p.folded && adapter.currentPlayerIndex !== 0) {
-    const wrap = document.createElement('div');
-    wrap.className = 'mobile-action-wrap mob-simple-wrap';
-    const b = document.createElement('button');
-    b.className = 'mob-btn mob-deal'; b.textContent = 'NEXT HAND'; b.onclick = fastForwardHand;
-    wrap.appendChild(b); el.appendChild(wrap);
-    if (adapter.state !== 'COMPLETE' && adapter.state !== 'SHOWDOWN')
-      setTimeout(cpuTurn, 550);
-    return;
   }
 
   if (adapter.currentPlayerIndex !== 0 || p.isAllIn) {
@@ -1117,6 +1122,7 @@ function humanAction(act, amount = 0) {
     if (act === 'all_in')                label += `  ${bb(adapter.players[0].totalBet, BB)} BB`;
     lastActions[0] = { ...info, label };
     lastActorId = 0; freshBubblePids.add(0);
+    if (act === 'fold') foldBubbleState[0] = adapter.state;
   }
   _applyShowdownReveal();
   renderAll();
@@ -1202,7 +1208,9 @@ function finishHandFast() {
 
 function fastForwardHand() {
   if (adapter.state === 'COMPLETE' || adapter.state === 'SHOWDOWN') { startNewHand(); return; }
-  cpuTurn();
+  // finishHandFast で残局を同期的に一括処理（揺らぎ防止）
+  _fastFinishing = true;
+  finishHandFast();
 }
 
 // ------- CPU ベッティングターン -------
@@ -1239,6 +1247,7 @@ function cpuTurn() {
     if (action === 'bet' || action === 'raise') label += `  ${bb(adapter.currentBet, BB)} BB`;
     lastActions[p.id] = { ...info, label };
     lastActorId = p.id; freshBubblePids.add(p.id);
+    if (action === 'fold') foldBubbleState[p.id] = adapter.state;
   }
   _applyShowdownReveal();
   renderAll();

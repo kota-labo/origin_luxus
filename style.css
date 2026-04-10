@@ -524,8 +524,10 @@ html[data-card="luxus"] .card.bk::after { background:repeating-linear-gradient(4
   border:1px solid rgba(120,144,156,.16);
   box-shadow:0 2px 10px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
 }
-/* FOLD バブルは settled になっても視認性を維持 */
-.action-bubble.ab-fold:not(.ab-new) { opacity:.72; }
+/* FOLD settled: やや透過して存在感を残す */
+.action-bubble.ab-fold:not(.ab-new) { opacity:.55; }
+/* FOLD active: フォールドしたラウンド中は透過なし（CALL/RAISEと同等） */
+.action-bubble.ab-fold.ab-fold-active { opacity:1 !important; }
 .ab-check {
   background:rgba(20,90,35,.32); color:rgba(120,230,145,.88);
   border:1px solid rgba(80,200,100,.18);
@@ -640,7 +642,7 @@ html[data-bg="nebula"] .bottom-panel {
 .action-btn.call:hover  { box-shadow:0 6px 22px rgba(21,101,192,.55); }
 .action-btn.all_in { background:linear-gradient(135deg,#e53935,#b71c1c); color:#fff; box-shadow:0 2px 12px rgba(183,28,28,.45); }
 .action-btn.all_in:hover { box-shadow:0 6px 22px rgba(183,28,28,.6); }
-.action-btn.deal   { background:linear-gradient(135deg,var(--gold),var(--gold-hi)); color:#0a0c10; padding:11px 38px; box-shadow:0 2px 16px rgba(212,168,67,.35); font-size:.85rem; letter-spacing:3px; border-radius:12px; }
+.action-btn.deal   { background:linear-gradient(135deg,var(--gold),var(--gold-hi)); color:#0a0c10; padding:11px 38px; box-shadow:0 2px 16px rgba(212,168,67,.35); font-size:1rem; letter-spacing:3px; border-radius:12px; }
 .action-btn.deal:hover { box-shadow:0 6px 26px rgba(212,168,67,.55); }
 .action-btn.confirm { background:linear-gradient(135deg,#43a047,#2e7d32); color:#fff; box-shadow:0 2px 10px rgba(46,125,50,.35); }
 .action-btn.cancel  { background:rgba(255,255,255,.06); color:var(--muted); border:1px solid rgba(255,255,255,.1); }
@@ -781,13 +783,13 @@ html[data-bg="nebula"] .bottom-panel {
   #game-screen { height:100dvh; overflow:hidden; position:relative; padding-top:env(safe-area-inset-top,0px); box-sizing:border-box; }
 
   /* アクション履歴: アクションボタン直上の左下配置
-     3行分 ≈ 52px / 幅36%でP0手牌(NLH:151px, 5枚:106px)と水平干渉なし */
+     幅30%: Dバッジ（left:-20px of seat-pill）との重なりを防止 */
   #action-log {
     position:absolute;
     left:4px;
     top:auto;
     bottom:calc(100dvh - 455px);  /* NLH: テーブルビューポート下端直上 */
-    width:36%; max-height:52px;
+    width:30%; max-height:52px;
     z-index:60; overflow:hidden;
     background:rgba(4,8,18,.62);
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -956,7 +958,7 @@ html[data-bg="nebula"] .bottom-panel {
     border:1px solid rgba(255,215,80,.28); color:rgba(255,228,120,.90); font-weight:900;
     backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
     box-shadow:0 3px 20px rgba(160,110,0,.22),inset 0 1px 0 rgba(255,228,120,.16);
-    letter-spacing:3px; font-size:.88rem; min-height:58px;
+    letter-spacing:3px; font-size:1rem; min-height:58px;
   }
 
   /* ポットサイズプリセットボタン行 */
@@ -1011,7 +1013,7 @@ html[data-bg="nebula"] .bottom-panel {
 
   /* アクションボタンをコンパクト化（カード拡大分を吸収） */
   .mob-btn { min-height:46px; font-size:.78rem; }
-  .mob-deal { min-height:50px; font-size:.82rem; letter-spacing:2px; color:rgba(255,228,120,.90); }
+  .mob-deal { min-height:50px; font-size:1rem; letter-spacing:2px; color:rgba(255,228,120,.90); }
   .mob-preset-btn { min-height:42px; }
   .mob-preset-row { gap:5px; }
   .mobile-btns { gap:7px; }
