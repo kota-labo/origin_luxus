@@ -1,14 +1,14 @@
-# No-Limit Hold'em 仕様
+# No Limit Hold'em 仕様
 
 ## 概要
 
 | 項目 | 内容 |
 |---|---|
-| ゲームタイプ | No-Limit / Hold'em |
+| ゲームタイプ | No Limit / Hold'em |
 | ホールカード | 2 枚 |
 | コミュニティカード | あり（5 枚: Flop 3 + Turn 1 + River 1） |
 | ドローフェーズ | なし |
-| ベッティング | No-Limit（最小レイズ制約あり） |
+| ベッティング | No Limit（最小レイズ制約あり） |
 | プレイ人数 | 2〜6 人（1 人 vs CPU 最大 5 体） |
 
 ---
@@ -34,7 +34,7 @@ WAITING → PREFLOP → FLOP → TURN → RIVER → SHOWDOWN → COMPLETE
 
 ## ベッティング構造
 
-- **No-Limit**: ベット額はチップ残高の範囲内で自由
+- **No Limit**: ベット額はチップ残高の範囲内で自由
 - 最小レイズ = 直前のレイズ増分以上
 - `lastRaiseIncrement` で追跡
 - スライダー UI で任意の額を選択可能

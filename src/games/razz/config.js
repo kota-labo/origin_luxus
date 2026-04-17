@@ -1,6 +1,6 @@
 // Razz (Seven Card Stud A-5 Lowball) ゲーム設定
 // ベット構造: 0.25BB / 0.25BB / 1BB / 2BB
-// bigBlind=20 で整数チップ制約を満たす
+// bigBlind=20 で 0.25BB (5チップ) まで小数1桁表示可能
 export default {
   gameId:             'razz',
   displayName:        'Razz',

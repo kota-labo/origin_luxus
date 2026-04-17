@@ -25,7 +25,7 @@ Luxus/
 │   ├── games/
 │   │   ├── shared/
 │   │   │   └── drawGame.js DrawGame 基底クラス
-│   │   ├── nlh/            No-Limit Hold'em
+│   │   ├── nlh/            No Limit Hold'em
 │   │   ├── 27td/           2-7 Triple Draw
 │   │   └── badugi/         Badugi
 │   ├── modes/
@@ -89,7 +89,7 @@ games/nlh/logic.js    ──► games/nlh/evaluator.js
 | 制約 | 理由 |
 |---|---|
 | `Math.random()` 禁止 | `crypto.getRandomValues()` のみ使用 |
-| チップは整数 | `Math.floor()` を徹底 |
+| チップは小数1桁まで可 | 最小単位 = 0.1 BB 相当。内部計算後は `Math.round(x * 10) / 10` で丸める。表示は `toFixed(1)` を基本、整数なら小数点なしで描画 |
 | XSS 対策: `esc()` | 動的文字列を `innerHTML` に挿入する前に必ず通す |
 | グローバル変数禁止 | モジュール間通信はすべて import/export |
 | CSP: `default-src 'none'` | index.html にメタタグを維持 |

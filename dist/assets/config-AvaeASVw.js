@@ -1,0 +1,1 @@
+const a={gameId:"plo",displayName:"Pot Limit Omaha",icon:"♠",hasCommunityCards:!0,hasDrawPhase:!1,hasLowHand:!1,variant:"pot-limit-omaha",numHoleCards:4,maxPlayers:6,minPlayers:2,startingBBs:100,bigBlind:10,smallBlind:5,hasBlinds:!0,bettingStructure:"pot-limit"};export{a as default};

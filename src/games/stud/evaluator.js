@@ -1,7 +1,7 @@
 // Seven Card Stud High — ハンド評価エンジン
 // NLH evaluator をラップ（7枚 → best 5 は同一ロジック）
 // + 可視カードのみでポーカーハンドを評価する visibleHandEval を追加
-// CLAUDE.md準拠: チップは整数
+// CLAUDE.md準拠: チップは小数1桁まで (0.1単位)
 
 import { evaluateHand as nlhEvaluateHand, determineWinners as nlhDetermineWinners, compareResults } from '../nlh/evaluator.js';
 

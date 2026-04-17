@@ -1,7 +1,7 @@
 // NLH ゲーム設定
 export default {
   gameId:           'nlh',
-  displayName:      "No-Limit Hold'em",
+  displayName:      "No Limit Hold'em",
   icon:             '♠',
   hasCommunityCards: true,
   hasDrawPhase:     false,

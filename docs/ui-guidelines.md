@@ -41,7 +41,7 @@ if (config.bettingStructure === 'fixed-limit') {
 }
 ```
 
-Fix Limit ではスライダーなし、固定額ボタンのみ。
+Fixed Limit ではスライダーなし、固定額ボタンのみ。
 
 ### ドローフェーズ
 
@@ -74,7 +74,7 @@ if (config.hasDrawPhase && adapter.state.startsWith('DRAW_')) {
 |---|---|
 | `.game-card` | タイトル画面のゲーム選択タイル |
 | `.game-card.selected` | 選択中タイル |
-| `.game-type-badge` | ゲームタイプバッジ（例: "Fix Limit / Draw"） |
+| `.game-type-badge` | ゲームタイプバッジ（例: "Fixed Limit / Draw"） |
 | `.draw-zone` | ドロー UI ラッパー |
 | `.draw-cards-row` | ドロー選択カード行 |
 | `.card.draw-selected` | 廃棄選択中カード（ハイライト） |
@@ -82,7 +82,7 @@ if (config.hasDrawPhase && adapter.state.startsWith('DRAW_')) {
 | `.badugi-indicator` | Badugi 有効枚数インジケーター行 |
 | `.badugi-dot` | ● / ○ の各ドット |
 | `.badugi-dot.active` | 有効カード（塗りつぶし） |
-| `.fl-bet-btn` | Fix Limit 固定額ボタン |
+| `.fl-bet-btn` | Fixed Limit 固定額ボタン |
 
 ---
 

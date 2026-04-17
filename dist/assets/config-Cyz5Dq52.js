@@ -1,0 +1,1 @@
+const a={gameId:"27sd",displayName:"2-7 Single Draw",icon:"—",hasCommunityCards:!1,hasDrawPhase:!0,numDrawRounds:1,numHoleCards:5,maxPlayers:6,minPlayers:2,startingBBs:100,bigBlind:10,smallBlind:5,hasBlinds:!0,bettingStructure:"no-limit",handRanking:"lowball-27",aceIsLow:!1};export{a as default};

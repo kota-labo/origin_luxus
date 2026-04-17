@@ -15,8 +15,8 @@ export default {
   hasBlinds:          false,
   bettingStructure:   'fixed-limit',
   // Stud 固有
-  ante:               1,       // 0.1BB — アンテ
-  bringIn:            3,       // 0.3BB — ブリングイン
+  ante:               2.5,     // 0.25BB — アンテ (全員から徴収)
+  bringIn:            2.5,     // 0.25BB — ブリングイン
   smallBet:           10,      // 1BB — Third/Fourth Street
   bigBet:             20,      // 2BB — Fifth/Sixth/Seventh Street
   maxRaisesPerRound:  5,       // 5-bet cap（bet + 4 raises）

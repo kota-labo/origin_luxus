@@ -229,6 +229,24 @@ body {
   background:var(--bg); color:var(--text);
   height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased;
   touch-action: manipulation;
+  /* 全体でドラッグ選択・コピー・画像ドラッグを抑止 (ポーカー UI は "読むだけ" の情報表示) */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+}
+/* input / textarea は入力が必要なので選択可 */
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+/* 画像やカード、SVG 要素のドラッグ挙動を抑止 */
+img, svg, .card {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 .hidden { display:none !important; }
 .screen { height:100vh; }
@@ -309,10 +327,31 @@ body {
   -webkit-user-drag:none; -webkit-touch-callout:none;
 }
 .table-brand * { user-select:none; -webkit-user-select:none; -webkit-user-drag:none; }
+/* ゲーム名サブブランド — ミニマル × 知的 × 高級感
+ *   medium 500 weight + ワイドトラッキング + シルバーグラデーション
+ *   hairline モチーフで Luxu's ブランドと統一しつつ、
+ *   読みやすさを確保する最小限の彩度・ウェイト・発光
+ *   空文字の場合は ':empty' で完全非表示 */
 .tlb-game {
-  font-size:.6rem; letter-spacing:5px; text-transform:uppercase; font-weight:600;
-  color:rgba(200,220,245,.55); margin-bottom:6px;
-  text-shadow:0 0 8px rgba(160,190,230,.25);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  font-size:.66rem; font-weight:500; letter-spacing:5.5px;
+  text-transform:uppercase;
+  background:linear-gradient(180deg,rgba(236,244,255,.92) 0%,rgba(190,210,240,.75) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  filter:drop-shadow(0 0 6px rgba(170,200,245,.22));
+  margin-bottom:12px;
+  user-select:none;
+}
+.tlb-game::before,
+.tlb-game::after {
+  content:''; flex:0 0 auto;
+  width:44px; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(210,225,250,.42));
+  margin:0 15px;
+}
+.tlb-game::after {
+  background:linear-gradient(90deg,rgba(210,225,250,.42),transparent);
 }
 .tlb-game:empty { display:none; }
 .tlb-suits {
@@ -346,12 +385,28 @@ html[data-theme="luxus"] .poker-table { background:linear-gradient(155deg,rgba(2
 }
 
 /* POT上部ブランドロゴ（全ゲーム共通 — Luxusの鉄則） */
+/* モバイル版ゲーム名サブブランド — デスクトップの読みやすさを保ちつつコンパクト化 */
 .pb-game {
-  text-align:center; font-size:.54rem; letter-spacing:4.5px; text-transform:uppercase; font-weight:600;
-  color:rgba(200,220,245,.5); margin-bottom:3px;
-  text-shadow:0 0 6px rgba(160,190,230,.22);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  font-size:.58rem; font-weight:500; letter-spacing:4.5px;
+  text-transform:uppercase;
+  background:linear-gradient(180deg,rgba(236,244,255,.9) 0%,rgba(190,210,240,.72) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  filter:drop-shadow(0 0 5px rgba(170,200,245,.2));
+  margin-bottom:5px;
   user-select:none; -webkit-user-select:none; -webkit-user-drag:none; -webkit-touch-callout:none;
   pointer-events:none;
+}
+.pb-game::before,
+.pb-game::after {
+  content:''; flex:0 0 auto;
+  width:28px; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(210,225,250,.4));
+  margin:0 11px;
+}
+.pb-game::after {
+  background:linear-gradient(90deg,rgba(210,225,250,.4),transparent);
 }
 .pb-game:empty { display:none; }
 .pot-brand {
@@ -523,21 +578,36 @@ html[data-card="luxus"] .card.bk::after { background:repeating-linear-gradient(4
 .seat-folded .seat-pill  { background:rgba(0,0,0,.4); border-color:rgba(255,255,255,.04); transition:background .25s, border-color .25s; }
 .seat-folded .action-bubble { opacity:.1 !important; }
 .seat-folded .turn-arrow    { opacity:0 !important; }
-.seat-bust   { opacity:.09; pointer-events:none; }
+
+/* バスト時: 全体をフェードしつつ Dバッジは常に完全表示 (opacity は親子で乗算されるため
+ *           seat-pill 自体には opacity を適用せず、子要素個別にフェードする) */
+.seat-bust .cards-row,
+.seat-bust .stud-cards-wrap,
+.seat-bust .av,
+.seat-bust .pos-label,
+.seat-bust .pos-chip,
+.seat-bust .pinfo,
+.seat-bust .live-hand,
+.seat-bust .s8-hand,
+.seat-bust .hname          { opacity:.09; filter:grayscale(.9); }
+.seat-bust .seat-pill      { background:rgba(0,0,0,.35); border-color:rgba(255,255,255,.03); }
+.seat-bust .action-bubble  { opacity:0 !important; }
+.seat-bust .turn-arrow     { opacity:0 !important; }
+.seat-bust                 { pointer-events:none; }
 
 /* アバター */
 .av { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.95rem; font-weight:800; color:rgba(255,255,255,.9); flex-shrink:0; }
 
 /* ポジションチップ（独立・大型・未来的） */
-.pos-chip { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:22px; padding:0 8px; border-radius:12px; font-size:.68rem; font-weight:800; letter-spacing:1px; }
+.pos-chip { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:22px; padding:0 9px; border-radius:12px; font-size:.62rem; font-weight:800; letter-spacing:.4px; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .pos-chip.bd  { background:linear-gradient(135deg,var(--gold),var(--gold-hi)); color:#0a0c10; box-shadow:0 2px 10px rgba(212,168,67,.45),0 0 20px rgba(212,168,67,.15); }
-.pos-chip.bsb { background:rgba(14,80,160,.25); color:rgba(144,196,255,.75); border-color:rgba(80,140,220,.22); box-shadow:none; }
-.pos-chip.bbb { background:rgba(160,20,20,.25); color:rgba(255,170,170,.75); border-color:rgba(220,80,80,.22); box-shadow:none; }
+.pos-chip.bsb { background:rgba(14,80,160,.3);  color:rgba(170,210,255,.95); border:1.5px solid rgba(110,175,240,.7); box-shadow:none; }
+.pos-chip.bbb { background:rgba(160,20,20,.3);  color:rgba(255,190,190,.95); border:1.5px solid rgba(235,110,110,.7); box-shadow:none; }
 
 /* 名前・スタック */
 .pinfo { display:flex; flex-direction:column; padding:0 0 0 8px; }
 .pname  { font-size:.72rem; font-weight:600; color:rgba(255,255,255,.75); white-space:nowrap; line-height:1.3; letter-spacing:.3px; }
-.pstack { font-size:.82rem; font-weight:800; color:#6ee06e; line-height:1.3; font-variant-numeric:tabular-nums; letter-spacing:.5px; }
+.pstack { font-size:.82rem; font-weight:800; color:#6ee06e; line-height:1.3; font-variant-numeric:tabular-nums; letter-spacing:.5px; white-space:nowrap; }
 /* リアルタイム役表示（seat-pill の外・下に表示） */
 .live-hand {
   font-family:'Inter','Segoe UI',system-ui,sans-serif;
@@ -546,6 +616,36 @@ html[data-card="luxus"] .card.bk::after { background:repeating-linear-gradient(4
   text-shadow:0 0 8px rgba(100,160,230,.35);
   pointer-events:none; line-height:1.3;
 }
+/* Stud 8 専用: Hi / Low の2-3行表示 (コロン位置揃え、キッカーは別行) */
+.s8-hand {
+  display:inline-grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 6px; row-gap: 1px;
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  font-size:.62rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  line-height:1.25; white-space:nowrap;
+  color:rgba(200,220,245,.85);
+  text-shadow:0 0 6px rgba(100,160,230,.25);
+  font-variant-numeric: tabular-nums;
+}
+.s8-hand .lbl     { text-align:left; opacity:.78; }
+.s8-hand .val     { color:rgba(230,240,255,.95); }
+.s8-hand .kickers { grid-column: 2; opacity:.62; font-size:.92em; letter-spacing:1px; }
+
+/* 勝利バナー内の Stud 8 ブロック: 親のグラデーションクリップを無効化 (モザイク化防止) */
+.win-hand-name .s8-hand {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  -webkit-background-clip: initial;
+          background-clip: initial;
+  filter: none;
+  color: rgba(230,240,255,.95);
+  white-space: normal;
+  font-size:.7rem;
+}
+.win-hand-name .s8-hand .lbl     { color: rgba(200,220,245,.75); }
+.win-hand-name .s8-hand .val     { color: rgba(245,230,190,.95); }  /* 役名はゴールド寄り */
+.win-hand-name .s8-hand .kickers { color: rgba(220,235,255,.70); }
 .pcbet  { display:none; } /* デスクトップでは非表示、モバイルCSSで上書き */
 
 /* ベットチップ（座席内・未使用だが互換用に残す） */
@@ -641,7 +741,9 @@ html[data-card="luxus"] .card.bk::after { background:repeating-linear-gradient(4
 }
 .stt-fold  { color:#78909c; background:rgba(80,100,120,.4); }
 .stt-allin { color:#ff9800; background:rgba(255,152,0,.15); box-shadow:0 0 8px rgba(255,152,0,.15); }
-.stt-bust  { color:#ef5350; background:rgba(239,83,80,.12); }
+/* BUST は恒常状態 (ハンド横断で表示され続ける) のためアニメーションを無効化し、
+ * 再描画のたびにスケールアニメが走って揺れるのを防ぐ */
+.stt-bust  { color:#ef5350; background:rgba(239,83,80,.12); animation:none; }
 
 /* ====== 下部パネル ====== */
 .bottom-panel { background:var(--surface); border-top:1px solid rgba(255,255,255,.07); padding:8px 14px 10px; display:flex; flex-direction:column; gap:6px; position:relative; }
@@ -784,6 +886,8 @@ html[data-bg="nebula"] .bottom-panel {
   letter-spacing:.5px; font-variant-numeric:tabular-nums;
   text-shadow:0 0 8px rgba(110,224,110,.4);
 }
+/* Stud 8 スプリット時: "Hi +N BB / Lo +N BB" 長文を小さめに表示 */
+.win-pot.win-pot-split { font-size:.7rem; letter-spacing:.3px; }
 
 /* ====== ログ ====== */
 .action-log { max-height:44px; overflow-y:auto; font-size:.65rem; line-height:1.55; }
@@ -945,7 +1049,7 @@ html[data-bg="nebula"] .bottom-panel {
   .pstack { font-size:.65rem; }
   .action-bubble { font-size:.52rem; padding:3px 7px; border-radius:14px; }
   .turn-arrow { font-size:.55rem; top:-13px; }
-  .pos-chip { font-size:.52rem; padding:1px 4px; min-width:18px; height:16px; }
+  .pos-chip { font-size:.48rem; padding:1px 5px; min-width:18px; height:16px; letter-spacing:.2px; }
   .dlr-badge { width:20px; height:20px; font-size:.58rem; top:1px; left:-20px; }
   .table-bet-chip { display:none; }  /* モバイルでは非表示（pcbetで代替） */
   .chip-dot { width:6px; height:6px; }
@@ -1306,7 +1410,7 @@ html[data-bg="nebula"] .bottom-panel {
   border: 1px solid rgba(160,180,220,.25);
 }
 
-/* Fix Limit アクションボタン（スライダーなし） */
+/* Fixed Limit アクションボタン（スライダーなし） */
 .fl-bet-btn {
   padding: 9px 18px;
   border-radius: 6px;
@@ -1333,17 +1437,19 @@ html[data-bg="nebula"] .bottom-panel {
 /* ================================================================
    フォーマット別オーバーライド
    各ゲームの追加改修はこのセクション内で行う
-   NLH / Fix Limit 共通 / Stud / Draw
+   NLH / Fixed Limit 共通 / Stud / Draw
    ================================================================ */
 
-/* ─── Fix Limit 共通 デスクトップ (Stud・Draw) ─────────────── */
+/* ─── Fixed Limit 共通 デスクトップ (Stud・Draw) ─────────────── */
 #game-screen[data-structure="fixlimit"] .bottom-panel { padding:5px 14px 7px; }
 #game-screen[data-structure="fixlimit"] .actions-area { min-height:44px; }
 
-/* ─── NLH デスクトップ ─────────────────────────────────────── */
-#game-screen[data-game="nlh"] .bottom-panel { padding:5px 14px 7px; }
-#game-screen[data-game="nlh"] .actions-area { min-height:44px; }
-#game-screen[data-game="nlh"] .action-bar { min-height:44px; padding:6px 12px; }
+/* ─── No Limit 共通 デスクトップ (NLH + NL27SD 等) ─────────── */
+/* bettingStructure !== 'fixed-limit' の全ゲームをコンパクト化し、
+ * アクション枠の縦スペースを Fixed Limit 並みに揃える */
+#game-screen:not([data-structure="fixlimit"]) .bottom-panel { padding:5px 14px 7px; }
+#game-screen:not([data-structure="fixlimit"]) .actions-area { min-height:44px; }
+#game-screen:not([data-structure="fixlimit"]) .action-bar { min-height:44px; padding:6px 12px; }
 
 @media (min-width:501px) {
   /* NLH: ログをアクションボタンの左上に配置 */
@@ -1401,7 +1507,7 @@ html[data-bg="nebula"] .bottom-panel {
    ================================================================ */
 @media (max-width:500px) {
 
-  /* ─── Fix Limit 共通モバイル (Stud・Draw) ──────────────── */
+  /* ─── Fixed Limit 共通モバイル (Stud・Draw) ──────────────── */
   #game-screen[data-structure="fixlimit"] .table-viewport {
     flex:1; height:auto;
   }
@@ -1449,31 +1555,43 @@ html[data-bg="nebula"] .bottom-panel {
     width:96%; max-width:none; height:90%; border-radius:50%;
   }
 
-  /* ─── NLH モバイル ─────────────────────────────────────── */
-  #game-screen[data-game="nlh"] .table-viewport { flex:1; height:auto; }
-  #game-screen[data-game="nlh"] .poker-table {
+  /* ─── No Limit 共通 モバイル (NLH + NL27SD 等) ──────────── */
+  /* bettingStructure !== 'fixed-limit' の全ゲームに NL スライダー UI 用の
+   * 十分な bottom-panel 高さと flex レイアウトを適用 */
+  #game-screen:not([data-structure="fixlimit"]) .table-viewport { flex:1; height:auto; }
+  #game-screen:not([data-structure="fixlimit"]) .poker-table {
     width:96%; max-width:none; height:90%; border-radius:50%;
   }
-  #game-screen[data-game="nlh"] .bottom-panel {
+  #game-screen:not([data-structure="fixlimit"]) .bottom-panel {
     flex:none; height:96px; min-height:0;
     overflow:visible; padding:6px 12px;
     background:rgba(8,12,24,.88);
     border-top:1px solid rgba(255,255,255,.06);
   }
-  #game-screen[data-game="nlh"] .actions-area { min-height:0; flex:1; }
-  #game-screen[data-game="nlh"] #action-log { bottom:102px; }
-  #game-screen[data-game="nlh"] .mob-btn { flex:1; min-height:44px; padding:4px 3px; }
-  #game-screen[data-game="nlh"] .mob-deal { min-height:52px; font-size:.84rem; padding:6px 4px; }
-  #game-screen[data-game="nlh"] .action-bar { min-height:44px; padding:6px 10px; }
-  #game-screen[data-game="nlh"] .mob-simple-wrap { min-height:44px; }
-  #game-screen[data-game="nlh"] .mob-preset-row { gap:3px; padding:0 1px; }
-  #game-screen[data-game="nlh"] .mob-preset-btn { min-height:28px; border-radius:8px; padding:2px 4px; }
-  #game-screen[data-game="nlh"] .mpb-label { font-size:.6rem; }
-  #game-screen[data-game="nlh"] .mpb-sub { font-size:.42rem; margin-top:0; }
-  #game-screen[data-game="nlh"] .mobile-action-wrap { gap:3px; }
-  #game-screen[data-game="nlh"] .mobile-btns { gap:4px; }
-  #game-screen[data-game="nlh"] .mob-custom-row { gap:4px; padding:0 1px; }
-  #game-screen[data-game="nlh"] .mob-step-btn { width:30px; height:28px; border-radius:7px; font-size:1rem; }
+  #game-screen:not([data-structure="fixlimit"]) .actions-area { min-height:0; flex:1; }
+  #game-screen:not([data-structure="fixlimit"]) #action-log { bottom:102px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-btn { flex:1; min-height:44px; padding:4px 3px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-deal { min-height:52px; font-size:.84rem; padding:6px 4px; }
+  #game-screen:not([data-structure="fixlimit"]) .action-bar { min-height:44px; padding:6px 10px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-simple-wrap { min-height:44px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-preset-row { gap:3px; padding:0 1px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-preset-btn { min-height:28px; border-radius:8px; padding:2px 4px; }
+  #game-screen:not([data-structure="fixlimit"]) .mpb-label { font-size:.6rem; }
+  #game-screen:not([data-structure="fixlimit"]) .mpb-sub { font-size:.42rem; margin-top:0; }
+  #game-screen:not([data-structure="fixlimit"]) .mobile-action-wrap { gap:3px; }
+  #game-screen:not([data-structure="fixlimit"]) .mobile-btns { gap:4px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-custom-row { gap:4px; padding:0 1px; }
+  #game-screen:not([data-structure="fixlimit"]) .mob-step-btn { width:30px; height:28px; border-radius:7px; font-size:1rem; }
+
+  /* ─── モバイル Custom 展開時: ボトムパネルとアクション履歴を拡張 ───
+   * 通常時: bottom-panel = 96px / action-log bottom = 102px
+   * Custom 展開時: 1行増 (step row: ~38px) のため panel = 136px, log = 142px */
+  #game-screen.mobile-custom-open:not([data-structure="fixlimit"]) .bottom-panel {
+    height: 136px;
+  }
+  #game-screen.mobile-custom-open:not([data-structure="fixlimit"]) #action-log {
+    bottom: 142px;
+  }
   #game-screen[data-game="nlh"] .mob-custom-input { height:28px; font-size:.72rem; border-radius:7px; }
   #game-screen[data-game="nlh"] .mob-custom-unit { font-size:.58rem; }
 }

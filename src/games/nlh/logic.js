@@ -1,5 +1,5 @@
 // NLH ゲームエンジン — 有限ステートマシンでゲーム状態を管理
-// CLAUDE.md準拠: チップは整数、状態遷移は厳密管理
+// CLAUDE.md準拠: チップは小数1桁まで (0.1単位)、状態遷移は厳密管理
 // GameAdapter インターフェース準拠
 
 import { createDeck, shuffleDeck } from '../../core/card.js';
@@ -92,6 +92,7 @@ export class NLHGame {
       p.totalBet   = 0;
       p.isAllIn    = false;
       p.hasActed   = false;
+      p.handResult = null;  // ← 前ハンドの役名が残留しないようクリア (fold-win 時の誤表示防止)
     }
 
     // バストしたプレイヤーをフォールド扱い

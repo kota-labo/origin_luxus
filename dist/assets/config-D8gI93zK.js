@@ -1,0 +1,1 @@
+const a={gameId:"stud8",displayName:"Stud 8",icon:"8",hasCommunityCards:!1,hasDrawPhase:!1,isStudGame:!0,hasLowHand:!0,variant:"hi-lo-8",numHoleCards:7,maxPlayers:6,minPlayers:2,startingBBs:100,bigBlind:10,smallBlind:5,hasBlinds:!1,bettingStructure:"fixed-limit",ante:2.5,bringIn:2.5,smallBet:10,bigBet:20,maxRaisesPerRound:5};export{a as default};

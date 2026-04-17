@@ -34,7 +34,7 @@
 |---|---|---|
 | `state` | `string` | 現在のゲームステート |
 | `players` | `Player[]` | 全プレイヤー |
-| `pot` | `number` | ポット（整数 chips） |
+| `pot` | `number` | ポット（0.1単位、最大小数1桁） |
 | `currentBet` | `number` | 現ラウンドの最高ベット額 |
 | `currentPlayerIndex` | `number` | 現在のアクションプレイヤー（-1 = なし） |
 | `dealerIndex` | `number` | ディーラーボタン位置 |
@@ -67,7 +67,7 @@
 {
   id:             number,   // 0 始まりの席番号
   name:           string,
-  chips:          number,   // 現在チップ（整数）
+  chips:          number,   // 現在チップ（小数1桁まで可、0.1単位）
   hand:           Card[],   // ホールカード
   folded:         boolean,
   currentBet:     number,   // 現ラウンドのベット額
@@ -99,8 +99,8 @@
 | `bigBlind` | `number` | ✅ | BB 額 |
 | `smallBlind` | `number` | ✅ | SB 額 |
 | `startingBBs` | `number` | ✅ | 開始チップ（BB 換算） |
-| `smallBet` | `number` | FL のみ | Fix Limit 前半ベット額 |
-| `bigBet` | `number` | FL のみ | Fix Limit 後半ベット額 |
+| `smallBet` | `number` | FL のみ | Fixed Limit 前半ベット額 |
+| `bigBet` | `number` | FL のみ | Fixed Limit 後半ベット額 |
 | `maxRaisesPerRound` | `number` | FL のみ | 1 ラウンドの最大レイズ数 |
 
 ---

@@ -1,0 +1,1 @@
+const a={gameId:"flo8",displayName:"FLO8",icon:"♥",hasCommunityCards:!0,hasDrawPhase:!1,hasLowHand:!0,variant:"omaha-hi-lo-8",numHoleCards:4,maxPlayers:6,minPlayers:2,startingBBs:100,bigBlind:10,smallBlind:5,hasBlinds:!0,bettingStructure:"fixed-limit",smallBet:10,bigBet:20,maxRaisesPerRound:5};export{a as default};

@@ -2,7 +2,7 @@
 // Fixed Limit Stud: Ante → Third Street(bring-in) → Fourth〜Seventh Street → Showdown
 // Stud Hi と同一のステートマシン。評価ロジックとアクション順のみ異なる。
 // GameAdapter インターフェース準拠
-// CLAUDE.md準拠: チップは整数、crypto.getRandomValues() は card.js 側で使用
+// CLAUDE.md準拠: チップは小数1桁まで (0.1単位)、crypto.getRandomValues() は card.js 側で使用
 
 import { createDeck, shuffleDeck } from '../../core/card.js';
 import { evaluateHand, determineWinners, findBringInPlayer, findStrongestVisibleHand } from './evaluator.js';

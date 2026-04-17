@@ -8,7 +8,7 @@
 | ホールカード | 4 枚 |
 | コミュニティカード | なし |
 | ドローフェーズ | 3 回 |
-| ベッティング | Fix Limit |
+| ベッティング | Fixed Limit |
 | プレイ人数 | 2〜6 人 |
 
 ---
@@ -24,7 +24,7 @@ WAITING → DEAL → BETTING_1 → DRAW_1 → BETTING_2 → DRAW_2
 
 ---
 
-## Fix Limit ベッティング構造
+## Fixed Limit ベッティング構造
 
 2-7 Triple Draw と同一（`smallBet=10`, `bigBet=20`, 最大 4 レイズ）。
 

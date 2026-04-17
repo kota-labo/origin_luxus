@@ -1,8 +1,8 @@
 // DrawGame 共通基底クラス
 // 2-7 Triple Draw / Badugi など、ドロー系ゲームの共通ロジックを担当。
-// ステートマシン遷移・Fix Limit ベッティング・ドロー処理・ブラインド投稿を実装。
+// ステートマシン遷移・Fixed Limit ベッティング・ドロー処理・ブラインド投稿を実装。
 // サブクラスは evaluateHand() / determineWinners() のみ実装すればよい。
-// CLAUDE.md準拠: チップは整数、crypto.getRandomValues() 使用、XSS対策不要（純ロジック）
+// CLAUDE.md準拠: チップは小数1桁まで (0.1単位)、crypto.getRandomValues() 使用、XSS対策不要（純ロジック）
 
 import { createDeck, shuffleDeck } from '../../core/card.js';
 

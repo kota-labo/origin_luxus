@@ -1,7 +1,7 @@
 // Seven Card Stud High — ゲームエンジン
 // Fixed Limit Stud: Ante → Third Street(bring-in) → Fourth〜Seventh Street → Showdown
 // GameAdapter インターフェース準拠
-// CLAUDE.md準拠: チップは整数、crypto.getRandomValues() は card.js 側で使用
+// CLAUDE.md準拠: チップは小数1桁まで (0.1単位)、crypto.getRandomValues() は card.js 側で使用
 
 import { createDeck, shuffleDeck } from '../../core/card.js';
 import { evaluateHand, determineWinners, findBringInPlayer, findStrongestVisibleHand } from './evaluator.js';
@@ -617,7 +617,10 @@ export class StudGame {
 
   _bb(chips) {
     const v = chips / this.bigBlind;
-    return Number.isInteger(v) ? `${v}` : v.toFixed(1);
+    if (Number.isInteger(v)) return `${v}`;
+    const s1 = v.toFixed(1);
+    if (parseFloat(s1) === v) return s1;
+    return parseFloat(v.toFixed(2)).toString();
   }
 
   _log(msg) { this.actionLog.push(msg); }

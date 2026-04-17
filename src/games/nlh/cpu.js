@@ -1,5 +1,5 @@
 // NLH CPU AI — Position-aware, multi-level poker engine
-// CLAUDE.md準拠: Math.random()禁止、crypto.getRandomValues()使用、チップは整数
+// CLAUDE.md準拠: Math.random()禁止、crypto.getRandomValues()使用、チップは小数1桁まで (0.1単位)
 // decideCpuAction(adapter) → { action, amount }
 
 import { Action } from './logic.js';
@@ -190,13 +190,15 @@ const FOUR_BET_VALUE = buildRange(['AA','KK','AKs']);
 const FOUR_BET_BLUFF = buildRange(['A5s']);
 
 // プリフロップオープンサイズ (BB単位)
+//   SB のみ 3BB、他ポジションは全て 2.5BB 固定
+//   (既にコール・レイズが入っている場合は §8 で 75〜100% pot raise を適用)
 const OPEN_SIZE = {
-  [POS.UTG]: 2.0,
-  [POS.HJ]:  2.0,
-  [POS.CO]:  2.3,
+  [POS.UTG]: 2.5,
+  [POS.HJ]:  2.5,
+  [POS.CO]:  2.5,
   [POS.BTN]: 2.5,
   [POS.SB]:  3.0,
-  [POS.BB]:  2.0,  // BB raise
+  [POS.BB]:  2.5,
 };
 
 // ══════════════════════════════════════════════
@@ -368,7 +370,7 @@ function calcSPR(adapter, playerId) {
   return effectiveStack / pot;
 }
 
-/** ポットに対する倍率でベット額を計算 (整数) */
+/** ポットに対する倍率でベット額を計算 (0.1単位で丸め) */
 function potBet(adapter, fraction) {
   return Math.max(adapter.bigBlind, Math.floor(adapter.pot * fraction));
 }
@@ -451,6 +453,9 @@ function preflopDecision(adapter, p, valid, pos, key, level) {
 
   // リンプ or オープンレイズがあったか判定
   const preflopRaises = countPreflopRaises(adapter);
+  const preflopCalls  = countPreflopCalls(adapter);
+  // 「既にCALL or RAISE が入っている」判定 (BB自身を除く)
+  const actionAlreadyIn = preflopRaises > 0 || preflopCalls > 0;
 
   // ── 4bet facing ──
   if (preflopRaises >= 3) {
@@ -469,19 +474,17 @@ function preflopDecision(adapter, p, valid, pos, key, level) {
     return { action: Action.FOLD, amount: 0 };
   }
 
-  // ── 3bet facing ──
+  // ── 3bet facing → 4bet 判断 ──
   if (preflopRaises === 2) {
     if (THREE_BET_VALUE.has(key)) {
-      const raiseAmt = Math.floor(adapter.currentBet * 3) - p.currentBet;
       if (valid.includes(Action.RAISE)) {
-        return { action: Action.RAISE, amount: Math.max(raiseAmt, bb * 2) };
+        return { action: Action.RAISE, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
       }
       return { action: Action.CALL, amount: 0 };
     }
     if (THREE_BET_BLUFF.has(key) && chance(0.30 * lp.bluffFreqMod)) {
-      const raiseAmt = Math.floor(adapter.currentBet * 3) - p.currentBet;
       if (valid.includes(Action.RAISE)) {
-        return { action: Action.RAISE, amount: Math.max(raiseAmt, bb * 2) };
+        return { action: Action.RAISE, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
       }
     }
     // コールレンジ
@@ -496,31 +499,28 @@ function preflopDecision(adapter, p, valid, pos, key, level) {
     return { action: Action.FOLD, amount: 0 };
   }
 
-  // ── オープンレイズ facing (preflopRaises === 1) ──
+  // ── オープンレイズ facing (preflopRaises === 1) → 3bet 判断 ──
   if (preflopRaises === 1 && toCall > bb) {
-    // 3bet判定
+    // 3bet判定 — 75〜100% ポットレイズ
     if (THREE_BET_VALUE.has(key)) {
-      const raiseAmt = Math.floor(adapter.currentBet * 3) - p.currentBet;
       if (valid.includes(Action.RAISE)) {
-        return { action: Action.RAISE, amount: Math.max(raiseAmt, bb * 2) };
+        return { action: Action.RAISE, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
       }
       return { action: Action.CALL, amount: 0 };
     }
     if (THREE_BET_BLUFF.has(key) && chance(0.30 * lp.bluffFreqMod)) {
-      const raiseAmt = Math.floor(adapter.currentBet * 3) - p.currentBet;
       if (valid.includes(Action.RAISE)) {
-        return { action: Action.RAISE, amount: Math.max(raiseAmt, bb * 2) };
+        return { action: Action.RAISE, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
       }
     }
 
     // BB ディフェンス
     if (pos === POS.BB) {
       if (BB_DEFEND.has(key) || chance(lp.rangeExpand)) {
-        // JJ+ / AQ+ でレイズ
+        // JJ+ / AQ+ で 3bet
         if (['AA','KK','QQ','JJ','AKs','AKo','AQs','AQo'].some(h => key === h)) {
           if (valid.includes(Action.RAISE)) {
-            const raiseAmt = Math.floor(adapter.currentBet * 3) - p.currentBet;
-            return { action: Action.RAISE, amount: Math.max(raiseAmt, bb * 2) };
+            return { action: Action.RAISE, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
           }
         }
         return valid.includes(Action.CALL) ? { action: Action.CALL, amount: 0 } : { action: Action.FOLD, amount: 0 };
@@ -554,17 +554,29 @@ function preflopDecision(adapter, p, valid, pos, key, level) {
     return { action: Action.FOLD, amount: 0 };
   }
 
-  // ファーストイン or リンプポット: オープンレイズ
-  if (toCall <= bb && valid.includes(Action.RAISE)) {
-    const openBBs = OPEN_SIZE[pos] || 2.0;
+  // ファーストイン判定: まだ誰もCALL/RAISEしていない → 固定BBサイズでオープン
+  //   performAction の RAISE は amount = raise-to 額 - adapter.currentBet の差分を期待するため、
+  //   最終 raise-to チップ数から BB 額を引いた差分を渡す (そうしないと toCall 分が二重加算される)
+  if (!actionAlreadyIn && toCall <= bb && valid.includes(Action.RAISE)) {
+    const openBBs = OPEN_SIZE[pos] || 2.5;
     const sizeVariance = 1 + (rng01() * 2 - 1) * lp.sizeJitter;
-    const raiseAmount = Math.floor(openBBs * bb * sizeVariance);
+    const desiredTotal = openBBs * bb * sizeVariance;       // 例: UTG=25chips(=2.5BB)
+    const raiseAmount  = Math.max(bb, Math.floor(desiredTotal - adapter.currentBet));
     return { action: Action.RAISE, amount: raiseAmount };
   }
-  if (toCall <= bb && valid.includes(Action.BET)) {
-    const openBBs = OPEN_SIZE[pos] || 2.0;
+  if (!actionAlreadyIn && toCall <= bb && valid.includes(Action.BET)) {
+    // BET アクションは amount = ベット額そのもの (performAction が toCall を足さない)
+    const openBBs = OPEN_SIZE[pos] || 2.5;
     const sizeVariance = 1 + (rng01() * 2 - 1) * lp.sizeJitter;
-    return { action: Action.BET, amount: Math.floor(openBBs * bb * sizeVariance) };
+    return { action: Action.BET, amount: Math.max(bb, Math.floor(openBBs * bb * sizeVariance)) };
+  }
+
+  // リンプポット (誰かCALLしているがRAISEはない): 75-100% ポットアイソレーションレイズ
+  if (actionAlreadyIn && toCall <= bb && valid.includes(Action.RAISE)) {
+    return { action: Action.RAISE, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
+  }
+  if (actionAlreadyIn && toCall <= bb && valid.includes(Action.BET)) {
+    return { action: Action.BET, amount: potRaiseAmount(adapter, p, 0.75, 1.0) };
   }
 
   // BB チェック
@@ -573,12 +585,37 @@ function preflopDecision(adapter, p, valid, pos, key, level) {
   return valid.includes(Action.CALL) ? { action: Action.CALL, amount: 0 } : { action: Action.FOLD, amount: 0 };
 }
 
+/**
+ * 75〜100% ポットレイズ額を計算する (performAction の amount パラメータ用)
+ *   amount = fraction × (pot + toCall)
+ *   fraction は [fracMin, fracMax] の一様乱数
+ */
+function potRaiseAmount(adapter, p, fracMin, fracMax) {
+  const toCall = adapter.currentBet - p.currentBet;
+  const fraction = fracMin + rng01() * (fracMax - fracMin);
+  const potAfterCall = adapter.pot + toCall;
+  const raise = potAfterCall * fraction;
+  // 最低ミニレイズ以上、残りスタック以下
+  const minRaise = Math.max(adapter.bigBlind, adapter.lastRaiseIncrement || adapter.bigBlind);
+  return Math.max(minRaise, Math.floor(raise));
+}
+
 /** プリフロップのレイズ回数をカウント（ブラインドは除外） */
 function countPreflopRaises(adapter) {
   let count = 0;
   for (const log of adapter.actionLog) {
     if (log.startsWith('--')) break; // ストリート区切り
     if (log.includes('raises to') || log.includes('ALL IN')) count++;
+  }
+  return count;
+}
+
+/** プリフロップのコール回数をカウント (BBへのコール = リンプ検出用) */
+function countPreflopCalls(adapter) {
+  let count = 0;
+  for (const log of adapter.actionLog) {
+    if (log.startsWith('--')) break;
+    if (log.includes('  calls')) count++;
   }
   return count;
 }
@@ -603,7 +640,74 @@ function postflopDecision(adapter, p, valid, pos, level) {
   return decideWhenFacing(adapter, p, valid, cls, texture, street, toCall, hasBlocker, hasDraw, lp);
 }
 
+// ══════════════════════════════════════════════
+// §9-X  ドンクベット/チェックレイズ判定ヘルパー
+// ══════════════════════════════════════════════
+
+/** 現ストリートで指定名のプレイヤーが "checks" を記録済みか */
+function didCheckThisStreet(adapter, playerName) {
+  const log = adapter.actionLog;
+  const target = `${playerName}  checks`;
+  for (let i = log.length - 1; i >= 0; i--) {
+    const entry = log[i];
+    if (entry.startsWith('-- ')) break;  // ストリート区切り到達
+    if (entry === target) return true;
+  }
+  return false;
+}
+
+/**
+ * 前ストリートで最後にアグレッシブ (bet/raise/all-in) だったプレイヤーのIDを返す。
+ * プリフロップのブラインド投稿 (`posts BB`) は除外。
+ * 該当なし or プリフロップのみなら -1。
+ */
+function getPrevStreetAggressorId(adapter) {
+  const log = adapter.actionLog;
+  // Step 1: 現ストリートマーカーを探す (最後の "-- ..." 行)
+  let curMarker = -1;
+  for (let i = log.length - 1; i >= 0; i--) {
+    if (log[i].startsWith('-- ')) { curMarker = i; break; }
+  }
+  if (curMarker === -1) return -1;  // プリフロップのみ
+
+  // Step 2: 現マーカーより前を遡って "raises to" / "bets" / "ALL IN" を探す
+  //         別のストリートマーカーに到達したら停止 (= 前ストリート全体をスキャン済み)
+  for (let i = curMarker - 1; i >= 0; i--) {
+    const entry = log[i];
+    if (entry.startsWith('-- ')) break;
+    const m = entry.match(/^(.+?)\s\s+(raises to|bets|ALL IN)\s/);
+    if (m) {
+      const name = m[1];
+      const pl = adapter.players.find(pl => pl.name === name);
+      return pl ? pl.id : -1;
+    }
+  }
+  return -1;
+}
+
+/**
+ * ドンクベットスポット:
+ *   - ポストフロップ (FLOP/TURN/RIVER)
+ *   - 現ストリートでまだベットが出ていない (先手)
+ *   - 前ストリートに実際のアグレッサー (自分以外) がいた
+ */
+function isDonkSpot(adapter, player) {
+  const state = adapter.state;
+  if (state !== 'FLOP' && state !== 'TURN' && state !== 'RIVER') return false;
+  if (adapter.currentBet !== 0) return false;
+  if (adapter.currentBet - player.currentBet !== 0) return false;
+  const aggId = getPrevStreetAggressorId(adapter);
+  if (aggId === -1) return false;
+  return aggId !== player.id;
+}
+
 function decideWhenCheckedTo(adapter, p, valid, cls, texture, street, hasBlocker, hasDraw, lp) {
+  // ドンクベット禁止: 前ストリートの相手アグレッサーに対し OOP で先行ベットしない
+  //   → 必ず CHECK し、相手のベットに対してチェックレイズ/コール/フォールドで対応
+  if (isDonkSpot(adapter, p)) {
+    return { action: Action.CHECK, amount: 0 };
+  }
+
   const canBet = valid.includes(Action.BET);
   const bb = adapter.bigBlind;
 
@@ -671,20 +775,36 @@ function decideWhenFacing(adapter, p, valid, cls, texture, street, toCall, hasBl
   const pot = adapter.pot;
   const potOdds = toCall / (pot + toCall);
 
-  // ── 超強ハンド: レイズ ──
-  if (cls >= HAND_CLASS.SET && valid.includes(Action.RAISE)) {
-    const raiseFreq = cls >= HAND_CLASS.FULL_HOUSE ? 0.90 : 0.65;
-    if (chance(raiseFreq)) {
+  // チェックレイズ機会判定: 現ストリートで既にチェックしていれば、レイズはチェックレイズとなる
+  // 目標 7-8% 均一: 適格ハンド (~50%) × 15% = 全体 7.5%
+  const isCheckRaiseOpp = didCheckThisStreet(adapter, p.name);
+  if (isCheckRaiseOpp) {
+    const crQualifies =
+      cls >= HAND_CLASS.TWO_PAIR ||                    // バリュー: ツーペア以上
+      (hasBlocker && cls < HAND_CLASS.TOP_PAIR) ||     // ブラフ: ブロッカーあり弱ハンド
+      (hasDraw && cls < HAND_CLASS.TOP_PAIR);          // セミブラフ: ドローあり
+    if (crQualifies && valid.includes(Action.RAISE) && chance(0.15 * lp.bluffFreqMod)) {
       const size = chooseBetSize(adapter, p.id, cls, texture);
       return { action: Action.RAISE, amount: size };
     }
-    // スロープレイ: コール
+    // ここから下はチェックレイズしないケース → レイズ経路スキップ、コール/フォールドのみ
+  }
+
+  // ── 超強ハンド: レイズ (チェックレイズ機会でなければ通常レイズ) ──
+  if (cls >= HAND_CLASS.SET) {
+    if (!isCheckRaiseOpp && valid.includes(Action.RAISE)) {
+      const raiseFreq = cls >= HAND_CLASS.FULL_HOUSE ? 0.90 : 0.65;
+      if (chance(raiseFreq)) {
+        const size = chooseBetSize(adapter, p.id, cls, texture);
+        return { action: Action.RAISE, amount: size };
+      }
+    }
     return { action: Action.CALL, amount: 0 };
   }
 
-  // ── ツーペア: レイズ or コール ──
+  // ── ツーペア ──
   if (cls === HAND_CLASS.TWO_PAIR) {
-    if (valid.includes(Action.RAISE) && chance(0.35)) {
+    if (!isCheckRaiseOpp && valid.includes(Action.RAISE) && chance(0.35)) {
       const size = chooseBetSize(adapter, p.id, cls, texture);
       return { action: Action.RAISE, amount: size };
     }
@@ -693,7 +813,6 @@ function decideWhenFacing(adapter, p, valid, cls, texture, street, toCall, hasBl
 
   // ── オーバーペア / TPGK ──
   if (cls >= HAND_CLASS.TOP_PAIR) {
-    // 大きいベットに面してる場合は慎重に
     if (potOdds > 0.4 && street === 'RIVER') {
       return chance(0.55 + lp.foldReduction * 0.2) ?
         { action: Action.CALL, amount: 0 } : { action: Action.FOLD, amount: 0 };
@@ -713,28 +832,24 @@ function decideWhenFacing(adapter, p, valid, cls, texture, street, toCall, hasBl
 
   // ── ミドルペア / ボトムペア ──
   if (cls >= HAND_CLASS.BOTTOM_PAIR) {
-    // ドローが付いてるならコール寄り
     if (hasDraw && street !== 'RIVER') {
       return chance(0.65 + lp.foldReduction * 0.2) ?
         { action: Action.CALL, amount: 0 } : { action: Action.FOLD, amount: 0 };
     }
-    // フロップなら小さいベットにはコール
     if (street === 'FLOP' && potOdds < 0.3) {
       return chance(0.55 + lp.foldReduction * 0.2) ?
         { action: Action.CALL, amount: 0 } : { action: Action.FOLD, amount: 0 };
     }
-    // それ以外はフォールド寄り
     return chance(0.25 + lp.foldReduction * 0.3) ?
       { action: Action.CALL, amount: 0 } : { action: Action.FOLD, amount: 0 };
   }
 
   // ── ドロー ──
   if (hasDraw && street !== 'RIVER') {
-    // ポットオッズ判定
-    const drawEquity = 0.20; // 概算: フラドロ≈35%, OESD≈32%, ガッター≈17%
+    const drawEquity = 0.20;
     if (potOdds < drawEquity + 0.05) {
-      // セミブラフレイズ
-      if (valid.includes(Action.RAISE) && chance(0.20 * lp.bluffFreqMod)) {
+      // セミブラフレイズ (チェックレイズ機会でなければ通常レイズ)
+      if (!isCheckRaiseOpp && valid.includes(Action.RAISE) && chance(0.20 * lp.bluffFreqMod)) {
         const size = chooseBetSize(adapter, p.id, cls, texture);
         return { action: Action.RAISE, amount: size };
       }
@@ -745,8 +860,9 @@ function decideWhenFacing(adapter, p, valid, cls, texture, street, toCall, hasBl
   }
 
   // ── トラッシュ ──
-  // リバーブロッカーブラフレイズ
-  if (street === 'RIVER' && hasBlocker && valid.includes(Action.RAISE) && chance(0.10 * lp.bluffFreqMod)) {
+  // リバーブロッカーブラフレイズ (チェックレイズ機会でなければ)
+  if (street === 'RIVER' && hasBlocker && !isCheckRaiseOpp &&
+      valid.includes(Action.RAISE) && chance(0.10 * lp.bluffFreqMod)) {
     const size = chooseBetSize(adapter, p.id, cls, texture);
     return { action: Action.RAISE, amount: size };
   }
