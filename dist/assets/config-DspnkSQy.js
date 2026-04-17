@@ -1,0 +1,1 @@
+const a={gameId:"razz",displayName:"Razz",icon:"A",hasCommunityCards:!1,hasDrawPhase:!1,isStudGame:!0,numHoleCards:7,maxPlayers:6,minPlayers:2,startingBBs:100,bigBlind:20,smallBlind:10,hasBlinds:!1,bettingStructure:"fixed-limit",ante:5,bringIn:5,smallBet:20,bigBet:40,maxRaisesPerRound:5};export{a as default};

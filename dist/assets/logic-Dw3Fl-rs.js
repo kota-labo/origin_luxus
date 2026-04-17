@@ -1,1 +1,0 @@
-import{D as r}from"./drawGame-BAfG3TlJ.js";import{e as t,d as a}from"./evaluator-D79Ni0OG.js";import"./card-BOI2qG2_.js";class i extends r{evaluateHand(e){return t(e)}determineWinners(e){return a(e)}}export{i as TDGame};

@@ -1,1 +1,0 @@
-const a={gameId:"27td",displayName:"2-7 Triple Draw",icon:"✦",hasCommunityCards:!1,hasDrawPhase:!0,numDrawRounds:3,numHoleCards:5,maxPlayers:6,minPlayers:2,handRanking:"lowball-27",bettingStructure:"fixed-limit",smallBet:10,bigBet:20,maxRaisesPerRound:4,hasBlinds:!0,smallBlind:5,bigBlind:10,startingBBs:100,aceIsLow:!1};export{a as default};

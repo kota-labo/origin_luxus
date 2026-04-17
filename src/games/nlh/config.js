@@ -13,4 +13,5 @@ export default {
   smallBlind:       5,
   hasBlinds:        true,
   bettingStructure: 'no-limit',
+  cpuLevel: 3,   // 1=beginner, 2=intermediate, 3=GTO
 };

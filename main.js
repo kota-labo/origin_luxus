@@ -4,11 +4,63 @@
 import { patchState, getState } from './src/state/store.js';
 import { toggleThemeMenu, setTheme, setCardTheme, setBgTheme } from './src/ui/ui.js';
 
+// Luxus ブランドアイコン — 未来的×ミニマル×高級感
+// 統一仕様: 28x28 viewBox, stroke:currentColor, stroke-width:1.2, fill:none
+// 細線・幾何学・対称性でブランドトーンを統一
+const GAME_ICONS = {
+  // NLH: ダイヤモンド枠内にスペードシルエット (=ノーリミットの鋭さ×無限性)
+  nlh: `
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 5 L22 14 L14 23 L6 14 Z" opacity=".35"/>
+      <path d="M14 9 C14 9 10 12.5 10 15.2 C10 17 11.4 18.2 13 18 C13.4 18 13.7 17.8 14 17.5 C14.3 17.8 14.6 18 15 18 C16.6 18.2 18 17 18 15.2 C18 12.5 14 9 14 9 Z"/>
+      <path d="M14 17.5 L14 20"/>
+    </svg>`,
+
+  // 2-7 Triple Draw: 3本の下降ライン (=Lowball×Triple Draw の反復変化)
+  '27td': `
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9 L22 9" opacity=".85"/>
+      <path d="M6 14 L22 14" opacity=".55"/>
+      <path d="M6 19 L22 19" opacity=".3"/>
+      <circle cx="6" cy="9" r="1.2" fill="currentColor" stroke="none"/>
+      <circle cx="22" cy="19" r="1.2" fill="currentColor" stroke="none"/>
+    </svg>`,
+
+  // Badugi: 4つの菱形 (=4スート・レインボー構造)
+  badugi: `
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 4 L17 7 L14 10 L11 7 Z"/>
+      <path d="M7 11 L10 14 L7 17 L4 14 Z" opacity=".7"/>
+      <path d="M21 11 L24 14 L21 17 L18 14 Z" opacity=".7"/>
+      <path d="M14 18 L17 21 L14 24 L11 21 Z" opacity=".4"/>
+    </svg>`,
+
+  // Stud: 7本の縦ライン (=7枚勝負)
+  stud: `
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+      <path d="M5 8 L5 20"/>
+      <path d="M8 8 L8 20" opacity=".85"/>
+      <path d="M11 8 L11 20" opacity=".7"/>
+      <path d="M14 8 L14 20" opacity=".9"/>
+      <path d="M17 8 L17 20" opacity=".7"/>
+      <path d="M20 8 L20 20" opacity=".85"/>
+      <path d="M23 8 L23 20"/>
+    </svg>`,
+
+  // Razz: 逆三角形 (=A-5 Low / 降順の最強)
+  razz: `
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 7 L23 7 L14 22 Z"/>
+      <path d="M9 11 L19 11" opacity=".55"/>
+      <path d="M11.5 15 L16.5 15" opacity=".35"/>
+    </svg>`,
+};
+
 // ゲームレジストリ（動的インポートで遅延ロード）
 const GAME_REGISTRY = {
   nlh: {
     label:  "No-Limit Hold'em",
-    icon:   '♠',
+    icon:   GAME_ICONS.nlh,
     type:   'No-Limit',
     module: () => import('./src/games/nlh/logic.js'),
     cpu:    () => import('./src/games/nlh/cpu.js'),
@@ -16,7 +68,7 @@ const GAME_REGISTRY = {
   },
   '27td': {
     label:  '2-7 Triple Draw',
-    icon:   '✦',
+    icon:   GAME_ICONS['27td'],
     type:   'Fix Limit / Draw',
     module: () => import('./src/games/27td/logic.js'),
     cpu:    () => import('./src/games/27td/cpu.js'),
@@ -24,11 +76,27 @@ const GAME_REGISTRY = {
   },
   badugi: {
     label:  'Badugi',
-    icon:   '◆',
+    icon:   GAME_ICONS.badugi,
     type:   'Fix Limit / Draw',
     module: () => import('./src/games/badugi/logic.js'),
     cpu:    () => import('./src/games/badugi/cpu.js'),
     config: () => import('./src/games/badugi/config.js'),
+  },
+  stud: {
+    label:  'Seven Card Stud',
+    icon:   GAME_ICONS.stud,
+    type:   'Fix Limit / Stud',
+    module: () => import('./src/games/stud/logic.js'),
+    cpu:    () => import('./src/games/stud/cpu.js'),
+    config: () => import('./src/games/stud/config.js'),
+  },
+  razz: {
+    label:  'Razz',
+    icon:   GAME_ICONS.razz,
+    type:   'Fix Limit / Stud',
+    module: () => import('./src/games/razz/logic.js'),
+    cpu:    () => import('./src/games/razz/cpu.js'),
+    config: () => import('./src/games/razz/config.js'),
   },
 };
 
@@ -82,9 +150,7 @@ function wirePlayerCountButtons() {
 
 // ヘッダー・テーマボタンのイベント登録（inline onclick の代替）
 function wireHeaderButtons() {
-  // 退席ボタン（ゲーム中に window._uiBackToTitle がセットされる）
-  document.querySelector('.quit-hdr-btn')
-    ?.addEventListener('click', () => window._uiBackToTitle?.());
+  // 退席ボタン: initUI 内で backToTitle() が直接バインドされる
 
   // テーマメニュー開閉
   document.querySelector('.theme-btn')
@@ -122,6 +188,8 @@ async function launchGame() {
   const LogicClass = gameModule.NLHGame
     || gameModule.TDGame
     || gameModule.BadugiGame
+    || gameModule.StudGame
+    || gameModule.RazzGame
     || Object.values(gameModule).find(v => typeof v === 'function');
 
   const decideCpuAction = cpuModule.decideCpuAction;

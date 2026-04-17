@@ -4,44 +4,60 @@
 
 import { cardHtml, sc, bb, esc, mkBar, mkGroup, mkDivider, mkBtn } from './components.js';
 
-// デスクトップ座席配置（NLH用）
+// ─── デスクトップ座席配置 ───────────────────────────
+// NLH用: 2枚ホールカード、上部プレイヤーをヘッダー水準まで引き上げ
 const SEATS = {
   2: [[50,89],[50,10]],
-  3: [[50,89],[18,22],[82,22]],
-  4: [[50,89],[17,24],[50,14],[83,24]], // 上中央(y=14)、左右(y=24)で重ならない配置
-  5: [[50,89],[16,63],[22,17],[78,17],[84,63]],
-  6: [[50,89],[17,64],[20,15],[50,10],[80,15],[83,64]],
+  3: [[50,89],[18,18],[82,18]],
+  4: [[50,89],[17,20],[50,10],[83,20]],
+  5: [[50,89],[16,65],[22,14],[78,14],[84,65]],
+  6: [[50,89],[17,65],[20,14],[50,8],[80,14],[83,65]],
 };
 
-// デスクトップ座席配置（5枚ホールカードゲーム用: 左右をより中央に寄せてカードのはみ出しを防止）
+// Draw用: 5枚ホールカード、Studと同等のy配置 + x は5枚幅を考慮しやや中央寄せ
 const SEATS_WIDE = {
-  2: [[50,89],[50,10]],
-  3: [[50,89],[24,22],[76,22]],
-  4: [[50,89],[23,24],[50,14],[77,24]],
-  5: [[50,89],[22,63],[28,17],[72,17],[78,63]],
-  6: [[50,89],[22,64],[25,15],[50,10],[75,15],[78,64]],
+  2: [[50,89],[50,16]],
+  3: [[50,89],[20,25],[80,25]],
+  4: [[50,89],[19,28],[50,18],[81,28]],
+  5: [[50,89],[18,65],[22,22],[78,22],[82,65]],
+  6: [[50,89],[17,65],[19,22],[50,16],[81,22],[83,65]],
 };
 
-// スマホ縦向き (≤500px) 専用の座席配置
-// ※ 左右プレイヤーを外側に寄せてコミュニティカードとの重なりを防止
+// ─── モバイル座席配置 (≤500px) ───────────────────────
+// NLH用: 上部プレイヤーをヘッダー水準まで引き上げ
 const MOBILE_SEATS = {
-  2: [[50,83],[50,22]],
-  3: [[50,83],[16,32],[84,32]],
-  4: [[50,83],[14,35],[50,22],[86,35]],
-  5: [[50,83],[14,64],[27,22],[73,22],[86,64]],
-  // 6人: 左右を段違い（y=30/66）にして中央との重なりを防止
-  6: [[50,85],[18,66],[15,30],[50,22],[85,30],[82,66]],
+  2: [[50,78],[50,16]],
+  3: [[50,78],[16,26],[84,26]],
+  4: [[50,78],[14,28],[50,16],[86,28]],
+  5: [[50,78],[14,60],[27,16],[73,16],[86,60]],
+  6: [[50,80],[18,62],[15,24],[50,16],[85,24],[82,62]],
 };
 
-// スマホ縦向き: 5枚ホールカードゲーム用
-// 上プレイヤーy=14%: ヘッダー直下（44px/ring高さ）に寄せる
+// Draw用: 5枚ホールカード、Studと同等のy配置 + x は5枚幅を考慮しやや中央寄せ
 const MOBILE_SEATS_WIDE = {
-  2: [[50,83],[50,14]],
-  3: [[50,83],[26,32],[74,32]],
-  4: [[50,83],[24,34],[50,14],[76,34]],
-  5: [[50,83],[28,62],[30,14],[70,14],[72,62]],
-  // 6人Fix Limit: 拡大テーブルviewport(~764px)で垂直間隔が十分広がる
-  6: [[50,85],[28,65],[26,28],[50,14],[74,28],[72,65]],
+  2: [[50,78],[50,18]],
+  3: [[50,78],[20,32],[80,32]],
+  4: [[50,78],[18,30],[50,18],[82,30]],
+  5: [[50,78],[22,58],[24,22],[76,22],[78,58]],
+  6: [[50,80],[22,62],[20,30],[50,18],[80,30],[78,62]],
+};
+
+// デスクトップ座席配置（Stud用: 7枚カード対応、左右を広げて重なり防止）
+const SEATS_STUD = {
+  2: [[50,89],[50,16]],
+  3: [[50,89],[20,25],[80,25]],
+  4: [[50,89],[19,28],[50,18],[81,28]],
+  5: [[50,89],[18,65],[22,22],[78,22],[82,65]],
+  6: [[50,89],[15,65],[17,22],[50,16],[83,22],[85,65]],
+};
+
+// スマホ縦向き: Stud用（7枚カード対応、左右を広げて重なり防止）
+const MOBILE_SEATS_STUD = {
+  2: [[50,78],[50,18]],
+  3: [[50,78],[18,32],[82,32]],
+  4: [[50,78],[16,30],[50,18],[84,30]],
+  5: [[50,78],[20,58],[22,22],[78,22],[80,58]],
+  6: [[50,80],[20,62],[18,30],[50,18],[82,30],[80,62]],
 };
 
 const COLORS = ['#1e88e5','#8e24aa','#00897b','#e53935','#fb8c00','#43a047'];
@@ -69,6 +85,30 @@ let lastActions       = {};
 let lastActorId       = -1;
 let prevStreet        = null;
 let lastAnimatedStreet = null;
+
+// Stud: ストリート変化時のフロートアニメーション管理
+// 値が現在のストリート名と一致する間、最新カードにフロートアニメーションを適用
+// 次のストリートに変わると自動的に不一致になりアニメーションは非適用になる
+let _studFloatStreet  = null;
+
+// Stud: ドアカード順次リビール管理
+let _studDoorRevealing     = false;   // true = リビール演出中
+let _studDoorRevealedPids  = new Set(); // リビール済みプレイヤーID
+let _studLatestRevealPid   = -1;      // 直前にリビールされたPID（フロートアニメ対象）
+
+// Stud: 4th Street以降の順次ディール管理
+let _studStreetDealing     = false;   // true = ストリートディール演出中
+let _studStreetDealtPids   = new Set(); // ディール済みプレイヤーID
+let _studLatestDealPid     = -1;      // 直前にディールされたPID（フロートアニメ対象）
+
+// Stud: 時計回りディール順序（右上→時計回り）
+const STUD_DEAL_ORDER = {
+  2: [1, 0],
+  3: [2, 0, 1],
+  4: [3, 0, 1, 2],
+  5: [3, 4, 0, 1, 2],
+  6: [4, 5, 0, 1, 2, 3],
+};
 
 // ドロー選択中のカードインデックス（プレイヤー0用）
 let selectedDrawIndices = new Set();
@@ -129,6 +169,26 @@ export function initUI(gameAdapter, config, decideCpu, callbacks = {}) {
   }
   gameScreen.setAttribute('data-holecards', String(config.numHoleCards || 2));
   gameScreen.setAttribute('data-players',   String(gameAdapter.players.length));
+  if (config.isStudGame) {
+    gameScreen.setAttribute('data-game', 'stud');
+  } else if (config.hasDrawPhase) {
+    gameScreen.setAttribute('data-game', 'draw');
+  } else {
+    gameScreen.setAttribute('data-game', 'nlh');
+  }
+
+  // テーブル上に現在のゲーム名を表示（Luxusロゴの上・POTブランドの上）
+  const gameName = config.displayName || '';
+  const tlbGame = document.getElementById('tlb-game');
+  const pbGame  = document.getElementById('pb-game');
+  if (tlbGame) tlbGame.textContent = gameName;
+  if (pbGame)  pbGame.textContent  = gameName;
+
+  // 退席ボタンを initUI 内でバインド（window グローバル不要）
+  const quitBtn = document.querySelector('.quit-hdr-btn');
+  if (quitBtn) {
+    quitBtn.onclick = () => backToTitle();
+  }
 
   startNewHand();
 }
@@ -144,6 +204,9 @@ function startNewHand() {
   mobileRaiseAmount = 0; mobileCustomMode = false;
   selectedDrawIndices = new Set(); _humanDrawAnimCount = 0;
   _discardingPids = new Set(); _inDrawExecution = false; _fastFinishing = false;
+  _showdownDelayActive = false; _showdownReveal = false; _studFloatStreet = null;
+  _studDoorRevealing = false; _studDoorRevealedPids = new Set(); _studLatestRevealPid = -1;
+  _studStreetDealing = false; _studStreetDealtPids = new Set(); _studLatestDealPid = -1;
 
   const alive = adapter.players.filter(p => p.chips > 0);
   if (alive.length <= 1) {
@@ -159,10 +222,83 @@ function startNewHand() {
   }
 
   adapter.startHand();
+
+  // Stud: ドアカード順次リビール演出
+  if (gameConfig?.isStudGame) {
+    _studDoorRevealing = true;
+    _studDoorRevealedPids = new Set();
+    _studLatestRevealPid = -1;
+    renderAll(); // 初期描画（ドアカードなし）
+    _startStudDoorReveal();
+    return;
+  }
+
   renderAll();
   if (isRunout()) { scheduleRunout(); return; }
   if (adapter.currentPlayerIndex !== 0 && adapter.state !== 'COMPLETE')
     setTimeout(cpuTurn, 800);
+}
+
+// ------- Stud ドアカード順次リビール -------
+function _startStudDoorReveal() {
+  const n = adapter.players.length;
+  const order = STUD_DEAL_ORDER[n] || STUD_DEAL_ORDER[6];
+  // バスト済みプレイヤーをスキップ
+  const active = order.filter(pid => pid < n && !adapter.players[pid].folded);
+
+  let delay = 300; // 最初の1枚は少し間を置く
+  const interval = 380; // 枚間のインターバル
+
+  for (let i = 0; i < active.length; i++) {
+    setTimeout(() => {
+      _studLatestRevealPid = active[i];
+      _studDoorRevealedPids.add(active[i]);
+      renderAll();
+
+      // 最後の1枚リビール後 → アクション開始
+      if (i === active.length - 1) {
+        setTimeout(() => {
+          _studDoorRevealing = false;
+          _studLatestRevealPid = -1;
+          renderAll();
+          // CPUターン開始
+          if (adapter.currentPlayerIndex !== 0 && adapter.state !== 'COMPLETE')
+            setTimeout(cpuTurn, 600);
+        }, 500);
+      }
+    }, delay);
+    delay += interval;
+  }
+}
+
+// ------- Stud 4th Street以降 順次ディール -------
+function _startStudStreetDeal() {
+  const n = adapter.players.length;
+  const order = STUD_DEAL_ORDER[n] || STUD_DEAL_ORDER[6];
+  // フォールド済みプレイヤーをスキップ
+  const active = order.filter(pid => pid < n && !adapter.players[pid].folded);
+  let delay = 300;
+  const interval = 420;
+
+  for (let i = 0; i < active.length; i++) {
+    setTimeout(() => {
+      _studLatestDealPid = active[i];
+      _studStreetDealtPids.add(active[i]);
+      renderAll();
+
+      // 最後の1枚ディール後 → アクション開始
+      if (i === active.length - 1) {
+        setTimeout(() => {
+          _studStreetDealing = false;
+          _studLatestDealPid = -1;
+          renderAll();
+          if (adapter.currentPlayerIndex !== 0 && adapter.state !== 'COMPLETE')
+            setTimeout(cpuTurn, 600);
+        }, 400);
+      }
+    }, delay);
+    delay += interval;
+  }
 }
 
 // ------- テーマ -------
@@ -204,6 +340,8 @@ export function setBgTheme(name) {
 
 // ------- ポジションラベル -------
 function getPos(playerIdx) {
+  // Stud はポジションラベルなし（アンテ制）
+  if (gameConfig?.isStudGame) return '';
   const n    = adapter.players.length;
   const dist = (playerIdx - adapter.dealerIndex + n) % n;
   return (POS_LABELS[n] || POS_LABELS[6])[dist] || '';
@@ -224,7 +362,123 @@ const ACTION_LABELS = {
   draw_3: { label: 'DRAW 3', type: 'draw'  },
   draw_4: { label: 'DRAW 4', type: 'draw'  },
   draw_5: { label: 'DRAW 5', type: 'draw'  },
+  // Stud 系
+  bring_in: { label: 'BRING IN', type: 'bet'  },
+  complete: { label: 'COMPLETE', type: 'raise' },
 };
+
+// ------- Stud カード2段レイアウト -------
+// 上段: アップカード（最大4枚）+ 点線プレースホルダー
+// 下段: ダウンカード（最大3枚）+ 点線プレースホルダー
+function _renderStudCards(p, playerIdx, isHuman, isSD) {
+  const upCards   = p.hand.filter(c => c.faceUp);
+  const downCards = p.hand.filter(c => !c.faceUp);
+  const showAll   = isHuman || isSD;
+
+  // フォールド済みプレイヤーの表示:
+  // - 3rd Street (hand.length <= 3): ドアカード(アップカード)を透過表示、ダウンカードは非表示
+  // - 4th Street以降: カード非表示（プレースホルダーのみ）
+  if (p.folded) {
+    const isThirdStreet = p.hand.length <= 3;
+    let upHtml = '';
+    for (let i = 0; i < 4; i++) {
+      if (isThirdStreet && i < upCards.length) {
+        // 3rd Street: ドアカードを表示（透過はCSSの.seat-foldedで処理）
+        upHtml += cardHtml(upCards[i], 'hole stud-up');
+      } else {
+        upHtml += '<span class="card hole stud-up stud-ph"></span>';
+      }
+    }
+    let downHtml = '';
+    for (let i = 0; i < 3; i++) {
+      if (isThirdStreet && i < downCards.length) {
+        // 3rd Street: ダウンカードは裏向き表示
+        downHtml += isHuman ? cardHtml(downCards[i], 'hole stud-down') : '<span class="card hole stud-down bk"></span>';
+      } else {
+        downHtml += '<span class="card hole stud-down stud-ph"></span>';
+      }
+    }
+    return `<div class="stud-row stud-row-up">${upHtml}</div><div class="stud-row stud-row-down">${downHtml}</div>`;
+  }
+
+  // フロートアニメーション判定
+  const isSeventh   = adapter.state === 'SEVENTH_STREET';
+  // ドアカードリビール中: 最新リビールPIDのみフロート
+  const isDoorRevealFloat = _studDoorRevealing && playerIdx === _studLatestRevealPid;
+  // ストリートディール中: 最新ディールPIDのみフロート（isStreetFloatは無効化）
+  const isStreetDealFloat = _studStreetDealing && playerIdx === _studLatestDealPid;
+  // 通常ストリート: _studFloatStreet 一致で最新カードをフロート（ディール中は無効）
+  const isStreetFloat     = !_studDoorRevealing && !_studStreetDealing && _studFloatStreet === adapter.state;
+
+  // ドアカードリビール中: 未リビールプレイヤーのアップカードを非表示
+  const doorHidden = _studDoorRevealing && !_studDoorRevealedPids.has(playerIdx);
+  // ストリートディール中: 未ディールプレイヤーの最新カードを非表示
+  const streetDealHidden = _studStreetDealing && !_studStreetDealtPids.has(playerIdx);
+
+  // ストリートディール中の表示枚数制限
+  // 未ディールプレイヤーは最新カード（up or down）を1枚隠す
+  const visibleUpCount   = streetDealHidden && !isSeventh ? upCards.length - 1 : upCards.length;
+  const visibleDownCount = streetDealHidden && isSeventh  ? downCards.length - 1 : downCards.length;
+
+  // 上段: アップカード（4枠）
+  let upHtml = '';
+  for (let i = 0; i < 4; i++) {
+    if (doorHidden && i < upCards.length) {
+      // リビール前: ドアカードはプレースホルダー表示
+      upHtml += '<span class="card hole stud-up stud-ph"></span>';
+    } else if (i < visibleUpCount) {
+      const c = upCards[i];
+      // ドアカードリビール時 or ストリート変化時の最新カードにフロート
+      const floatDoor = isDoorRevealFloat && i === upCards.length - 1;
+      const floatNew  = isStreetFloat && !isSeventh && i === upCards.length - 1;
+      const floatDeal = isStreetDealFloat && !isSeventh && i === upCards.length - 1;
+      if (floatDoor || floatNew || floatDeal) {
+        upHtml += cardHtml(c, 'hole stud-up', 'stud-float', '');
+      } else if (!isHuman && _showdownReveal && isSD) {
+        upHtml += cardHtml(c, 'hole stud-up', 'card-reveal', `animation-delay:${i * 0.12}s`);
+      } else {
+        upHtml += cardHtml(c, 'hole stud-up');
+      }
+    } else {
+      upHtml += '<span class="card hole stud-up stud-ph"></span>';
+    }
+  }
+
+  // 下段: ダウンカード（3枠）
+  let downHtml = '';
+  for (let i = 0; i < 3; i++) {
+    if (i < visibleDownCount) {
+      const c = downCards[i];
+      // 7th Street: 最新のダウンカード（配列末尾）にフロートアニメーション
+      const floatNew  = isStreetFloat && isSeventh && i === downCards.length - 1;
+      const floatDeal = isStreetDealFloat && isSeventh && i === downCards.length - 1;
+      if ((floatNew || floatDeal) && showAll) {
+        downHtml += cardHtml(c, 'hole stud-down', 'stud-float', '');
+      } else if ((floatNew || floatDeal) && !showAll) {
+        downHtml += `<span class="card hole stud-down bk stud-float"></span>`;
+      } else if (showAll) {
+        if (!isHuman && _showdownReveal && isSD) {
+          downHtml += cardHtml(c, 'hole stud-down', 'card-reveal', `animation-delay:${(i + upCards.length) * 0.12}s`);
+        } else {
+          downHtml += cardHtml(c, 'hole stud-down');
+        }
+      } else {
+        downHtml += '<span class="card hole stud-down bk"></span>';
+      }
+    } else {
+      downHtml += '<span class="card hole stud-down stud-ph"></span>';
+    }
+  }
+
+  return `<div class="stud-row stud-row-up">${upHtml}</div><div class="stud-row stud-row-down">${downHtml}</div>`;
+}
+
+// ------- Fix Limit ベットサイズ計算 -------
+function _getStudFixedBetSize() {
+  // Stud: Fifth Street 以降は bigBet
+  const bigBetStates = ['FIFTH_STREET', 'SIXTH_STREET', 'SEVENTH_STREET', 'BETTING_3', 'BETTING_4'];
+  return bigBetStates.includes(adapter.state) ? gameConfig.bigBet : gameConfig.smallBet;
+}
 
 // ------- レイズプリセット計算（NLH専用） -------
 function potSizeTotal(frac, bet, pot) {
@@ -244,8 +498,8 @@ function computeRaisePresets(player) {
   const rawCandidates = isPreflopFirst
     ? [
         { label: '2BB',   total: 2   * adapter.bigBlind },
-        { label: '2.3BB', total: 23 },
-        { label: '2.5BB', total: 25 },
+        { label: '2.3BB', total: Math.round(2.3 * adapter.bigBlind) },
+        { label: '2.5BB', total: Math.round(2.5 * adapter.bigBlind) },
         { label: '3BB',   total: 3   * adapter.bigBlind },
       ]
     : [
@@ -270,22 +524,44 @@ function computeRaisePresets(player) {
 // ------- レンダリング -------
 function renderAll() {
   if (adapter.state !== prevStreet) {
-    if (prevStreet !== null) {
-      // isNew フラグはストリート変化で常にクリア（バブルはstartNewHand()でのみクリア）
-      for (const p of adapter.players) {
-        for (const c of p.hand) { c.isNew = false; }
+    // Stud: ストリート変化時の処理
+    if (gameConfig?.isStudGame) {
+      const streetDealStates = ['FOURTH_STREET','FIFTH_STREET','SIXTH_STREET','SEVENTH_STREET'];
+      if (streetDealStates.includes(adapter.state) && !_studStreetDealing) {
+        // 4th Street以降: 順次ディール開始
+        _studStreetDealing = true;
+        _studStreetDealtPids = new Set();
+        _studLatestDealPid = -1;
+        prevStreet = adapter.state;
+        renderPlayers(); renderCommunityCards(); renderPotInfo();
+        renderActions(); renderLog(); renderWinOverlay();
+        _startStudStreetDeal();
+        return;
+      } else if (!_studStreetDealing) {
+        // 3rd Street以前: 従来通り全体フロート
+        _studFloatStreet = adapter.state;
       }
     }
     prevStreet = adapter.state;
   }
   renderPlayers();
+  // Stud: フロートアニメーションをrenderPlayers1回のみに適用
+  if (_studFloatStreet) {
+    _studFloatStreet = null;
+  }
   renderCommunityCards();
   renderPotInfo();
   renderActions();
   renderLog();
   renderWinOverlay();
-  // DOM描画後に freshBubblePids をクリア → 次回 renderAll() でアニメしない（settled扱い）
-  requestAnimationFrame(() => freshBubblePids.clear());
+  // DOM描画後にフラグクリア → 次回 renderAll() でアニメしない（settled扱い）
+  requestAnimationFrame(() => {
+    freshBubblePids.clear();
+    // isNew フラグ: アニメーション1フレーム描画後にクリア
+    for (const p of adapter.players) {
+      for (const c of p.hand) { c.isNew = false; }
+    }
+  });
 }
 
 // ------- 勝利オーバーレイ -------
@@ -313,9 +589,12 @@ function renderPlayers() {
   const el      = document.getElementById('players');
   el.innerHTML  = '';
   const isMobile  = window.innerWidth <= 500;
+  const isStud    = !!gameConfig.isStudGame;
   const is5Card   = gameConfig.numHoleCards >= 5;
-  const seatMap   = isMobile ? (is5Card ? MOBILE_SEATS_WIDE : MOBILE_SEATS)
-                             : (is5Card ? SEATS_WIDE        : SEATS);
+  const seatMap   = isStud
+    ? (isMobile ? MOBILE_SEATS_STUD : SEATS_STUD)
+    : isMobile ? (is5Card ? MOBILE_SEATS_WIDE : MOBILE_SEATS)
+               : (is5Card ? SEATS_WIDE        : SEATS);
   const pos       = seatMap[adapter.players.length] || seatMap[6];
   const numHole  = gameConfig.numHoleCards;
 
@@ -336,18 +615,24 @@ function renderPlayers() {
     seat.style.top  = pos[i][1] + '%';
     seat.dataset.pid = i;
 
-    const posChip = isSB ? '<div class="pos-chip bsb">SB</div>'
+    // SB/BB チップ（Stud はアンテ制のため表示しない）
+    const posChip = isStud ? ''
+                  : isSB ? '<div class="pos-chip bsb">SB</div>'
                   : isBB ? '<div class="pos-chip bbb">BB</div>'
                   : '';
 
     // ホールカード表示（numHoleCards枚に対応）
     const showFaceUp = isHuman || isSD || isRunout();
     let cards = '';
-    if (p.hand.length) {
+    if (isStud && p.hand.length) {
+      // Stud: 2段レイアウト（上段: アップカード4枠、下段: ダウンカード3枠）
+      // フォールド済みも同じ2段レイアウトを使用（透過はCSSで処理）
+      cards = _renderStudCards(p, i, isHuman, isSD);
+    } else if (p.hand.length) {
       if (p.folded) {
         cards = isHuman
           ? p.hand.map(c => cardHtml(c, 'hole')).join('')
-          : `<span class="card hole bk"></span>`.repeat(numHole);
+          : `<span class="card hole bk"></span>`.repeat(p.hand.length || numHole);
       } else if (showFaceUp) {
         // isNew フラグ or _humanDrawAnimCount でカードのスタガーアニメーション
         // ショーダウン時は相手カードに card-reveal を付与
@@ -398,21 +683,45 @@ function renderPlayers() {
     const stt    = p.isAllIn  ? '<span class="stt stt-allin">ALL IN</span>'
                  : p.chips<=0 ? '<span class="stt stt-bust">BUST</span>' : '';
 
+    // 生役表示（プレイヤー0自身 / ショーダウン以外 / フォールド前）
+    let liveHand = '';
+    if (i === 0 && !isSD && !p.folded && adapter.evaluateCurrentHand) {
+      try {
+        const lhr = adapter.evaluateCurrentHand(0);
+        if (lhr && lhr.name && lhr.name !== '(invalid)') {
+          let dn = lhr.name;
+          // Badugi: "4-card Badugi (A-2-3-4)" → "A-2-3-4"
+          const bm = dn.match(/\(([^)]+)\)/);
+          if (bm && bm[1]) dn = bm[1];
+          liveHand = `<span class="live-hand">${esc(dn)}</span>`;
+        }
+      } catch(e) { /* 評価エラーは無視 */ }
+    }
+
     const la     = lastActions[i];
     const isNew  = freshBubblePids.has(i);
     // FOLDバブル: フォールドしたラウンド中は ab-fold-active（透過しない）
     const isFoldActive = la?.type === 'fold' && foldBubbleState[i] === adapter.state;
-    const bubble = (la && !isSD)
+    // FOLD直後にCOMPLETEになった場合（ヘッズアップ最終フォールド等）も fresh なら表示する
+    // ショーダウン遅延中（_showdownDelayActive）は直前のアクションバブルも表示する
+    const showBubble = la && (!isSD || (la.type === 'fold' && freshBubblePids.has(i)) || _showdownDelayActive);
+    const bubbleInner = showBubble
       ? `<div class="action-bubble ab-${la.type}${isNew?' ab-new':''}${isFoldActive?' ab-fold-active':''}">${la.label}</div>` : '';
+    // Stud: バブルを固定高スロットに配置（出現・消滅でカードが動かないようにする）
+    const bubble = isStud ? `<div class="bubble-slot">${bubbleInner}</div>` : bubbleInner;
     const arrow  = isActive ? '<span class="turn-arrow">▶</span>' : '';
 
     const posLbl    = getPos(i);
     const pcbetHtml = isMobile && p.currentBet > 0
       ? `<span class="pcbet">${bb(p.currentBet, BB)} BB</span>` : '';
 
+    const cardsWrap = (isStud && p.hand.length)
+      ? `<div class="stud-cards-wrap">${cards}</div>`
+      : `<div class="cards-row">${cards}</div>`;
+
     seat.innerHTML = `
       ${arrow}
-      <div class="cards-row">${cards}</div>
+      ${cardsWrap}
       ${bubble}
       ${posChip}
       <div class="seat-pill">
@@ -425,7 +734,7 @@ function renderPlayers() {
           ${pcbetHtml}
         </div>
       </div>
-      ${hname}${stt}
+      ${liveHand}${hname}${stt}
     `;
     el.appendChild(seat);
 
@@ -519,7 +828,16 @@ function renderPotInfo() {
     DRAW_2:    '2nd DRAW',
     DRAW_3:    '3rd DRAW',
   };
-  const stateLabel = _DRAW_LABELS[adapter.state] ?? adapter.state;
+  const _STUD_LABELS = {
+    ANTE:           'ANTE',
+    THIRD_STREET:   '3rd STREET',
+    FOURTH_STREET:  '4th STREET',
+    FIFTH_STREET:   '5th STREET',
+    SIXTH_STREET:   '6th STREET',
+    SEVENTH_STREET: '7th STREET',
+  };
+  const labelMap = gameConfig?.isStudGame ? _STUD_LABELS : _DRAW_LABELS;
+  const stateLabel = labelMap[adapter.state] ?? adapter.state;
   document.getElementById('street-display').textContent = stateLabel;
 }
 
@@ -528,6 +846,15 @@ function renderActions() {
   if (window.innerWidth <= 500) { renderMobileActions(); return; }
   const el = document.getElementById('actions');
   el.innerHTML = '';
+
+  // Stud: ドアカードリビール / ストリートディール演出中はアクション非表示
+  if (_studDoorRevealing || _studStreetDealing) {
+    const bar = mkBar();
+    const msg = document.createElement('span');
+    msg.className = 'waiting-msg';
+    msg.textContent = 'DEALING...';
+    bar.appendChild(msg); el.appendChild(bar); return;
+  }
 
   // ドロー実行アニメーション中はベットUIを隠す
   if (_inDrawExecution) {
@@ -596,6 +923,25 @@ function renderActions() {
   const toCall = adapter.currentBet - p.currentBet;
   const bar = mkBar();
 
+  // Stud: Bring-in 選択（BRING_IN or COMPLETE）
+  if (valid.includes('bring_in')) {
+    const leftGrp = mkGroup();
+    const biBtn = mkBtn('call', `<span class="btn-label">BRING IN</span><span class="btn-sub">${bb(gameConfig.bringIn, BB)} BB</span>`);
+    biBtn.onclick = () => humanAction('bring_in');
+    leftGrp.appendChild(biBtn);
+    bar.appendChild(leftGrp);
+    if (valid.includes('complete')) {
+      bar.appendChild(mkDivider());
+      const midGrp = mkGroup();
+      const compBtn = mkBtn('raise', `<span class="btn-label">COMPLETE</span><span class="btn-sub">${bb(gameConfig.smallBet, BB)} BB</span>`);
+      compBtn.onclick = () => humanAction('complete', 0);
+      midGrp.appendChild(compBtn);
+      bar.appendChild(midGrp);
+    }
+    el.appendChild(bar);
+    return;
+  }
+
   // 左グループ: FOLD / CHECK / CALL
   const leftGrp = mkGroup();
   if (valid.includes('fold') && toCall > 0) {
@@ -614,21 +960,31 @@ function renderActions() {
   }
   bar.appendChild(leftGrp);
 
-  // 中央グループ: レイズプリセット（NLH）またはFixedベット（Fix Limit）
+  // 中央グループ: レイズプリセット（NLH）、Fixedベット（Fix Limit）、Complete（Stud）
   const hasRaise = valid.includes('raise') || valid.includes('bet');
-  if (hasRaise) {
+  const hasComplete = valid.includes('complete');
+  if (hasRaise || hasComplete) {
     if (gameConfig.bettingStructure === 'fixed-limit') {
-      // Fix Limit: 固定額ボタン
+      // Fix Limit: 固定額ボタン（Stud Complete 含む）
       bar.appendChild(mkDivider());
       const midGrp = mkGroup();
-      const betAmt = (['BETTING_3','BETTING_4'].includes(adapter.state) ? gameConfig.bigBet : gameConfig.smallBet);
-      const betAct = toCall > 0 ? 'raise' : 'bet';
-      // currentBet > 0 (BB/リンプ含む) ならRAISE表記、それ以外はBET
-      const displayAmt = toCall > 0 ? adapter.currentBet + betAmt : betAmt;
-      const _raiseOrBet = (toCall > 0 || adapter.currentBet > 0) ? 'RAISE' : 'BET';
-      const b = mkBtn(betAct, `<span class="btn-label">${_raiseOrBet}</span><span class="btn-sub">${bb(displayAmt, BB)} BB</span>`);
-      b.onclick = () => humanAction(betAct, betAmt);
-      midGrp.appendChild(b);
+
+      if (hasComplete && !hasRaise) {
+        // Stud: Complete ボタン（bring-in → small bet）
+        const compAmt = gameConfig.smallBet;
+        const b = mkBtn('raise', `<span class="btn-label">COMPLETE</span><span class="btn-sub">${bb(compAmt, BB)} BB</span>`);
+        b.onclick = () => humanAction('complete', 0);
+        midGrp.appendChild(b);
+      } else {
+        // 通常の Bet/Raise
+        const betAmt = _getStudFixedBetSize();
+        const betAct = toCall > 0 ? 'raise' : 'bet';
+        const displayAmt = toCall > 0 ? adapter.currentBet + betAmt : betAmt;
+        const _raiseOrBet = (toCall > 0 || adapter.currentBet > 0) ? 'RAISE' : 'BET';
+        const b = mkBtn(betAct, `<span class="btn-label">${_raiseOrBet}</span><span class="btn-sub">${bb(displayAmt, BB)} BB</span>`);
+        b.onclick = () => humanAction(betAct, betAmt);
+        midGrp.appendChild(b);
+      }
       bar.appendChild(midGrp);
     } else {
       // No-Limit: プリセット + カスタム
@@ -714,7 +1070,7 @@ function renderDrawPhaseActions(el) {
   const n = selectedDrawIndices.size;
 
   const drawBtn = document.createElement('button');
-  drawBtn.className   = 'draw-btn';
+  drawBtn.className   = n === 0 ? 'draw-btn draw-btn-pat' : 'draw-btn draw-btn-draw';
   drawBtn.textContent = n === 0 ? 'Stand Pat' : `Draw ${n}`;
   drawBtn.onclick = () => {
     const humanIndices = [...selectedDrawIndices];
@@ -877,12 +1233,20 @@ function _setSliderVal(total) {
   s.value = String(t);
   if (b) b.value = bb(t, BB);
 }
-window._uiRenderActions = () => renderActions();
 
 // ------- モバイルアクション（≤500px） -------
 function renderMobileActions() {
   const el = document.getElementById('actions');
   el.innerHTML = '';
+
+  // Stud: ドアカードリビール / ストリートディール演出中はアクション非表示
+  if (_studDoorRevealing || _studStreetDealing) {
+    const wrap = document.createElement('div');
+    wrap.className = 'mobile-action-wrap mob-simple-wrap';
+    const msg = document.createElement('span');
+    msg.className = 'waiting-msg'; msg.textContent = 'DEALING...';
+    wrap.appendChild(msg); el.appendChild(wrap); return;
+  }
 
   // ドロー実行アニメーション中はベットUIを隠す
   if (_inDrawExecution) {
@@ -947,8 +1311,33 @@ function renderMobileActions() {
   }
 
   const valid   = adapter.getValidActions(p);
+
+  // Stud: Bring-in 選択（BRING_IN or COMPLETE）
+  if (valid.includes('bring_in')) {
+    const wrap = document.createElement('div');
+    wrap.className = 'mobile-action-wrap';
+    const btns = document.createElement('div');
+    btns.className = 'mobile-btns';
+    const biBtn = document.createElement('button');
+    biBtn.className = 'mob-btn mob-call';
+    biBtn.innerHTML = `<span class="mbl-act">BRING IN</span><span class="mbl-amt">${bb(gameConfig.bringIn, BB)} BB</span>`;
+    biBtn.onclick = () => humanAction('bring_in');
+    btns.appendChild(biBtn);
+    if (valid.includes('complete')) {
+      const compBtn = document.createElement('button');
+      compBtn.className = 'mob-btn mob-raise';
+      compBtn.innerHTML = `<span class="mbl-act">COMPLETE</span><span class="mbl-amt">${bb(gameConfig.smallBet, BB)} BB</span>`;
+      compBtn.onclick = () => humanAction('complete', 0);
+      btns.appendChild(compBtn);
+    }
+    wrap.appendChild(btns);
+    el.appendChild(wrap);
+    return;
+  }
+
   const toCall  = adapter.currentBet - p.currentBet;
   const hasRaise = valid.includes('raise') || valid.includes('bet');
+  const hasComplete = valid.includes('complete');
   const raiseAct = toCall > 0 ? 'raise' : 'bet';
   const minTotal = toCall > 0 ? adapter.currentBet + (adapter.lastRaiseIncrement || adapter.bigBlind) : adapter.bigBlind;
   const maxTotal = toCall > 0 ? p.chips + p.currentBet : p.chips;
@@ -961,7 +1350,7 @@ function renderMobileActions() {
   wrap.className = 'mobile-action-wrap';
 
   // プリセット行（NLH / Fix Limit で分岐）
-  if (hasRaise) {
+  if (hasRaise || hasComplete) {
     if (gameConfig.bettingStructure === 'fixed-limit') {
       // Fix Limit: プリセット不要（固定額のみ）
     } else {
@@ -1016,17 +1405,18 @@ function renderMobileActions() {
           const v = Math.round(parseFloat(inp.value) * BB);
           if (Number.isFinite(v) && v >= minTotal && v <= maxTotal) {
             mobileRaiseAmount = v;
-            // レイズボタンのテキストをリアルタイム更新
+            // レイズボタンをリアルタイム更新（2行フォーマット）
             const rBtn = el.querySelector('.mob-btn.mob-raise, .mob-btn.mob-allin');
             if (rBtn) {
               const isAI = v >= maxTotal;
+              const rl   = toCall > 0 ? 'RAISE' : (adapter.currentBet > 0 ? 'RAISE' : 'BET');
               if (isAI) {
-                rBtn.className   = 'mob-btn mob-allin';
-                rBtn.textContent = `ALL IN  ${bb(p.chips, BB)} BB`;
-                rBtn.onclick     = () => humanAction('all_in');
+                rBtn.className = 'mob-btn mob-allin';
+                rBtn.innerHTML = `<span class="mbl-act">ALL IN</span><span class="mbl-amt">${bb(p.chips, BB)} BB</span>`;
+                rBtn.onclick   = () => humanAction('all_in');
               } else {
-                rBtn.className   = 'mob-btn mob-raise';
-                rBtn.textContent = `${toCall > 0 ? 'RAISE TO' : adapter.currentBet > 0 ? 'RAISE' : 'BET'}  ${bb(v, BB)} BB`;
+                rBtn.className = 'mob-btn mob-raise';
+                rBtn.innerHTML = `<span class="mbl-act">${rl}</span><span class="mbl-amt">${bb(v, BB)} BB</span>`;
                 const amt = toCall > 0 ? v - adapter.currentBet : v;
                 rBtn.onclick = () => humanAction(raiseAct, amt);
               }
@@ -1045,53 +1435,67 @@ function renderMobileActions() {
     }
   }
 
-  // アクションボタン（縦積み）
+  // アクションボタン（横並び: FOLD左 / CALL-CHECK中 / RAISE右）
   const btns = document.createElement('div');
   btns.className = 'mobile-btns';
 
-  if (hasRaise) {
+  // 1. FOLD（左）— コール必要時のみ
+  if (valid.includes('fold') && toCall > 0) {
+    const foldBtn = document.createElement('button');
+    foldBtn.className = 'mob-btn mob-fold';
+    foldBtn.innerHTML = '<span class="mbl-act">FOLD</span>';
+    foldBtn.onclick = () => humanAction('fold');
+    btns.appendChild(foldBtn);
+  }
+
+  // 2. CALL / CHECK（中央または左）
+  if (valid.includes('call')) {
+    const callBtn = document.createElement('button');
+    callBtn.className = 'mob-btn mob-call';
+    callBtn.innerHTML = `<span class="mbl-act">CALL</span><span class="mbl-amt">${bb(adapter.currentBet, BB)} BB</span>`;
+    callBtn.onclick = () => humanAction('call');
+    btns.appendChild(callBtn);
+  } else if (valid.includes('check')) {
+    const checkBtn = document.createElement('button');
+    checkBtn.className = 'mob-btn mob-check';
+    checkBtn.innerHTML = '<span class="mbl-act">CHECK</span>';
+    checkBtn.onclick = () => humanAction('check');
+    btns.appendChild(checkBtn);
+  }
+
+  // 3. RAISE / BET / COMPLETE（右）
+  if (hasComplete && !hasRaise) {
+    // Stud: Complete ボタン
+    const compBtn = document.createElement('button');
+    const compAmt = gameConfig.smallBet;
+    compBtn.className = 'mob-btn mob-raise';
+    compBtn.innerHTML = `<span class="mbl-act">COMPLETE</span><span class="mbl-amt">${bb(compAmt, BB)} BB</span>`;
+    compBtn.onclick = () => humanAction('complete', 0);
+    btns.appendChild(compBtn);
+  } else if (hasRaise) {
     const raiseBtn = document.createElement('button');
     if (gameConfig.bettingStructure === 'fixed-limit') {
-      const betAmt = ['BETTING_3','BETTING_4'].includes(adapter.state)
-        ? gameConfig.bigBet : gameConfig.smallBet;
+      const betAmt = _getStudFixedBetSize();
       const mDisplayAmt = toCall > 0 ? adapter.currentBet + betAmt : betAmt;
-      raiseBtn.className   = 'mob-btn mob-raise';
-      raiseBtn.textContent = `${(toCall > 0 || adapter.currentBet > 0) ? 'RAISE' : 'BET'}  ${bb(mDisplayAmt, BB)} BB`;
+      const flLabel = (toCall > 0 || adapter.currentBet > 0) ? 'RAISE' : 'BET';
+      raiseBtn.className = 'mob-btn mob-raise';
+      raiseBtn.innerHTML = `<span class="mbl-act">${flLabel}</span><span class="mbl-amt">${bb(mDisplayAmt, BB)} BB</span>`;
       raiseBtn.onclick = () => humanAction(raiseAct, betAmt);
     } else {
       const isAllIn = mobileRaiseAmount >= maxTotal;
+      const raiseLabel = toCall > 0 ? 'RAISE' : (adapter.currentBet > 0 ? 'RAISE' : 'BET');
       if (isAllIn) {
-        raiseBtn.className   = 'mob-btn mob-allin';
-        raiseBtn.textContent = `ALL IN  ${bb(p.chips, BB)} BB`;
-        raiseBtn.onclick     = () => humanAction('all_in');
+        raiseBtn.className = 'mob-btn mob-allin';
+        raiseBtn.innerHTML = `<span class="mbl-act">ALL IN</span><span class="mbl-amt">${bb(p.chips, BB)} BB</span>`;
+        raiseBtn.onclick   = () => humanAction('all_in');
       } else {
-        raiseBtn.className   = 'mob-btn mob-raise';
-        raiseBtn.textContent = `${toCall > 0 ? 'RAISE TO' : adapter.currentBet > 0 ? 'RAISE' : 'BET'}  ${bb(mobileRaiseAmount, BB)} BB`;
+        raiseBtn.className = 'mob-btn mob-raise';
+        raiseBtn.innerHTML = `<span class="mbl-act">${raiseLabel}</span><span class="mbl-amt">${bb(mobileRaiseAmount, BB)} BB</span>`;
         const amount = toCall > 0 ? mobileRaiseAmount - adapter.currentBet : mobileRaiseAmount;
         raiseBtn.onclick = () => humanAction(raiseAct, amount);
       }
     }
     btns.appendChild(raiseBtn);
-  }
-
-  if (valid.includes('call')) {
-    const callBtn = document.createElement('button');
-    callBtn.className='mob-btn mob-call';
-    callBtn.textContent=`CALL  ${bb(adapter.currentBet, BB)} BB`;
-    callBtn.onclick = () => humanAction('call');
-    btns.appendChild(callBtn);
-  } else if (valid.includes('check')) {
-    const checkBtn = document.createElement('button');
-    checkBtn.className='mob-btn mob-check'; checkBtn.textContent='CHECK';
-    checkBtn.onclick = () => humanAction('check');
-    btns.appendChild(checkBtn);
-  }
-
-  if (valid.includes('fold') && toCall > 0) {
-    const foldBtn = document.createElement('button');
-    foldBtn.className='mob-btn mob-fold'; foldBtn.textContent='FOLD';
-    foldBtn.onclick = () => humanAction('fold');
-    btns.appendChild(foldBtn);
   }
 
   wrap.appendChild(btns);
@@ -1112,14 +1516,16 @@ function _applyShowdownReveal() {
 // ------- 人間アクション -------
 function humanAction(act, amount = 0) {
   const callTotal = adapter.currentBet;
+  const chipsBefore = adapter.players[0].chips;
   try { adapter.performAction(0, act, amount); } catch(e) { console.error(e); return; }
 
   const info = ACTION_LABELS[act];
   if (info) {
     let label = info.label;
-    if (act === 'call')                   label += `  ${bb(callTotal, BB)} BB`;
-    if (act === 'bet' || act === 'raise') label += `  ${bb(adapter.currentBet, BB)} BB`;
-    if (act === 'all_in')                label += `  ${bb(adapter.players[0].totalBet, BB)} BB`;
+    if (act === 'call')                               label += `  ${bb(callTotal, BB)} BB`;
+    if (act === 'bet' || act === 'raise')              label += `  ${bb(adapter.currentBet, BB)} BB`;
+    if (act === 'complete')                            label += `  ${bb(adapter.currentBet, BB)} BB`;
+    if (act === 'all_in')                              label += `  ${bb(chipsBefore, BB)} BB`;
     lastActions[0] = { ...info, label };
     lastActorId = 0; freshBubblePids.add(0);
     if (act === 'fold') foldBubbleState[0] = adapter.state;
@@ -1139,6 +1545,8 @@ function humanAction(act, amount = 0) {
       setTimeout(finishHandFast, 400);
       return;
     }
+    // Stud: ストリートディール中はcpuTurnをスケジュールしない（_startStudStreetDealが処理）
+    if (_studStreetDealing) return;
     if (adapter.currentPlayerIndex !== 0) setTimeout(cpuTurn, 1100);
   }
 }
@@ -1151,7 +1559,8 @@ function finishHandFast() {
 
   let safety = 300;
   while (safety-- > 0) {
-    const st = adapter.state;
+    const st   = adapter.state;
+    const cpix = adapter.currentPlayerIndex;
     if (st === 'COMPLETE' || st === 'SHOWDOWN') break;
 
     if (gameConfig.hasDrawPhase && st.startsWith('DRAW_')) {
@@ -1177,15 +1586,17 @@ function finishHandFast() {
       const curr = adapter.getCurrentPlayer();
       if (!curr || curr.id === 0) break;
       try {
-        const { action, amount } = cpuDecideFn(adapter); // ← try-catch 内に移動
+        const { action, amount } = cpuDecideFn(adapter);
         adapter.performAction(curr.id, action, amount);
       } catch(e) {
         const valid = adapter.getValidActions(curr);
-        try { adapter.performAction(curr.id, valid.includes('check') ? 'check' : 'fold', 0); }
+        const fb2 = valid.includes('check') ? 'check' : valid.includes('call') ? 'call' : 'fold';
+        try { adapter.performAction(curr.id, fb2, 0); }
         catch(e2) { break; }
       }
     }
-    if (adapter.state === st) break; // 進行なし → 無限ループ防止
+    // 進行なし → 無限ループ防止（state と currentPlayerIndex の両方が変化しなければ停止）
+    if (adapter.state === st && adapter.currentPlayerIndex === cpix) break;
   }
 
   // フォールバック: ループが途中終了した場合は通常の CPU チェーンへ引き継ぐ
@@ -1216,6 +1627,8 @@ function fastForwardHand() {
 // ------- CPU ベッティングターン -------
 function cpuTurn() {
   if (_fastFinishing) return;
+  // Stud: ストリートディール演出中はCPUターンをブロック
+  if (_studStreetDealing) return;
   if (adapter.state === 'COMPLETE' || adapter.state === 'SHOWDOWN') { renderAll(); return; }
   if (gameConfig.hasDrawPhase && adapter.state.startsWith('DRAW_')) { cpuDeclareTurn(); return; }
 
@@ -1225,6 +1638,7 @@ function cpuTurn() {
   renderActions();
 
   const callTotal = adapter.currentBet;
+  const cpuChipsBefore = p.chips;
   const { action, amount } = cpuDecideFn(adapter);
 
   try {
@@ -1232,10 +1646,15 @@ function cpuTurn() {
   } catch(e) {
     try {
       const valid = adapter.getValidActions(p);
-      adapter.performAction(p.id, valid.includes('check') ? 'check' : 'fold', 0);
+      const fb = valid.includes('check') ? 'check' : valid.includes('call') ? 'call' : 'fold';
+      adapter.performAction(p.id, fb, 0);
     } catch(e2) {
       console.error('[CPU fallback failed]', e2);
       renderAll();
+      // チェーン継続（スタック防止）
+      if (adapter.state !== 'COMPLETE' && adapter.state !== 'SHOWDOWN') {
+        if (adapter.currentPlayerIndex !== 0) setTimeout(cpuTurn, 500);
+      }
       return;
     }
   }
@@ -1243,8 +1662,10 @@ function cpuTurn() {
   const info = ACTION_LABELS[action];
   if (info) {
     let label = info.label;
-    if (action === 'call')                      label += `  ${bb(callTotal, BB)} BB`;
-    if (action === 'bet' || action === 'raise') label += `  ${bb(adapter.currentBet, BB)} BB`;
+    if (action === 'call')                                  label += `  ${bb(callTotal, BB)} BB`;
+    if (action === 'bet' || action === 'raise')             label += `  ${bb(adapter.currentBet, BB)} BB`;
+    if (action === 'complete')                              label += `  ${bb(adapter.currentBet, BB)} BB`;
+    if (action === 'all_in')                                label += `  ${bb(cpuChipsBefore, BB)} BB`;
     lastActions[p.id] = { ...info, label };
     lastActorId = p.id; freshBubblePids.add(p.id);
     if (action === 'fold') foldBubbleState[p.id] = adapter.state;
@@ -1258,6 +1679,8 @@ function cpuTurn() {
     return;
   }
   if (adapter.state !== 'COMPLETE' && adapter.state !== 'SHOWDOWN') {
+    // Stud: ストリートディール中はcpuTurnをスケジュールしない（_startStudStreetDealが処理）
+    if (_studStreetDealing) return;
     const _d = adapter.players[0]?.folded ? 350 : 1300;
     if (adapter.currentPlayerIndex !== 0) setTimeout(cpuTurn, _d);
   }
@@ -1517,5 +1940,3 @@ function backToTitle() {
   onBackToTitle();
 }
 
-// 退席ボタン用 (HTML inline onclick から呼び出す)
-window._uiBackToTitle = () => backToTitle();

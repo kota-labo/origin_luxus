@@ -20,7 +20,11 @@ export function sc(card) { return `suit-${card.suit}`; }
 export function bb(chips, bigBlind) {
   if (!bigBlind || bigBlind <= 0) return '0';
   const v = chips / bigBlind;
-  return Number.isInteger(v) ? `${v}` : v.toFixed(1);
+  if (Number.isInteger(v)) return `${v}`;
+  // 1桁で正確に表現できるなら1桁、そうでなければ2桁（0.25BB等に対応）
+  const s1 = v.toFixed(1);
+  if (parseFloat(s1) === v) return s1;
+  return parseFloat(v.toFixed(2)).toString();
 }
 
 // XSS対策: innerHTML に挿入する文字列をすべてエスケープ
@@ -29,7 +33,8 @@ export function esc(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ------- DOM生成ヘルパー -------

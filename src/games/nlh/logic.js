@@ -36,6 +36,7 @@ export const Action = {
 
 export class NLHGame {
   constructor(playerNames, config) {
+    this.config     = config;
     this.smallBlind = config.smallBlind;
     this.bigBlind   = config.bigBlind;
     const startingChips = (config.startingBBs || 100) * config.bigBlind;
@@ -336,21 +337,21 @@ export class NLHGame {
         this.transition(GameState.FLOP);
         this.deck.pop();
         this.communityCards.push(this.deck.pop(), this.deck.pop(), this.deck.pop());
-        this.addLog(`── FLOP  ${this.communityCards.map(c => c.display).join(' ')} ──`);
+        this.addLog(`-- FLOP  ${this.communityCards.map(c => c.display).join(' ')} --`);
         break;
 
       case GameState.FLOP:
         this.transition(GameState.TURN);
         this.deck.pop();
         this.communityCards.push(this.deck.pop());
-        this.addLog(`── TURN  ${this.communityCards.slice(-1)[0].display} ──`);
+        this.addLog(`-- TURN  ${this.communityCards.slice(-1)[0].display} --`);
         break;
 
       case GameState.TURN:
         this.transition(GameState.RIVER);
         this.deck.pop();
         this.communityCards.push(this.deck.pop());
-        this.addLog(`── RIVER  ${this.communityCards.slice(-1)[0].display} ──`);
+        this.addLog(`-- RIVER  ${this.communityCards.slice(-1)[0].display} --`);
         break;
 
       case GameState.RIVER:
@@ -402,6 +403,15 @@ export class NLHGame {
     this.dealerIndex = (this.dealerIndex + 1) % this.players.length;
     this.sbIndex = undefined;  // 次ハンドで再計算
     this.bbIndex = undefined;
+  }
+
+  /** UI用: 現在の役をリアルタイム評価（FLOP以降、5枚以上のとき） */
+  evaluateCurrentHand(playerId) {
+    const p = this.players.find(pl => pl.id === playerId);
+    if (!p || !p.hand || p.hand.length === 0) return null;
+    const allCards = [...p.hand, ...this.communityCards];
+    if (allCards.length < 5) return null;
+    return evaluateHand(allCards);
   }
 
   // ── GameAdapter ヘルパー ──

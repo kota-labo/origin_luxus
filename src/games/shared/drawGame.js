@@ -108,6 +108,12 @@ export class DrawGame {
     this.state = newState;
   }
 
+  /** 全員フォールド時など中間ステートを飛ばして即座に完了する安全な強制遷移 */
+  _forceComplete() {
+    this.state = DrawGameState.SHOWDOWN;
+    this.state = DrawGameState.COMPLETE;
+  }
+
   // ── ライフサイクル ───────────────────────────────────────
   startHand() {
     this.transition(DrawGameState.DEAL);
@@ -157,7 +163,7 @@ export class DrawGame {
     const bbIdx = this.getBBIndex();
     this.currentPlayerIndex = this._firstActiveAfter(bbIdx);
 
-    this._log(`── Deal ──`);
+    this._log(`-- Deal --`);
   }
 
   nextHand() {
@@ -266,7 +272,8 @@ export class DrawGame {
 
     if (toCall === 0) {
       actions.push(DrawAction.CHECK);
-    } else if (player.chips >= toCall) {
+    } else {
+      // chips < toCall でもオールインコール可（NLHと同じルール）
       actions.push(DrawAction.CALL);
     }
 
@@ -305,10 +312,13 @@ export class DrawGame {
         this._log(`${player.name}  checks`);
         break;
 
-      case DrawAction.CALL:
-        this._placeBet(player, toCall);
-        this._log(`${player.name}  calls  ${this._bb(toCall)} BB`);
+      case DrawAction.CALL: {
+        const callAmt = Math.min(toCall, player.chips); // オールインコール対応
+        this._placeBet(player, callAmt);
+        const callLabel = callAmt < toCall ? `calls ${this._bb(callAmt)} BB (all-in)` : `calls  ${this._bb(callAmt)} BB`;
+        this._log(`${player.name}  ${callLabel}`);
         break;
+      }
 
       case DrawAction.BET:
         this._placeBet(player, betSize);
@@ -365,9 +375,7 @@ export class DrawGame {
       winner.chips    += this.pot;
       this._log(`${winner.name}  wins  ${this._bb(this.pot)} BB  (all others fold)`);
       this.pot = 0;
-      // 中間ステートを飛ばして強制遷移
-      this.state = DrawGameState.SHOWDOWN;
-      this.state = DrawGameState.COMPLETE;
+      this._forceComplete();
       return true;
     }
     return false;
@@ -424,7 +432,7 @@ export class DrawGame {
   // ── ドローフェーズ ────────────────────────────────────────
   _startDrawPhase() {
     this.drawRound = parseInt(this.state.slice(-1), 10); // DRAW_2 → 2
-    this._log(`── Draw ${this.drawRound} ──`);
+    this._log(`-- Draw ${this.drawRound} --`);
 
     for (const p of this.activeInHandPlayers) {
       p.hasDrawn        = false;
@@ -549,7 +557,14 @@ export class DrawGame {
 
     // 次のアクション開始: ディーラーの左
     this.currentPlayerIndex = this._firstActiveAfter(this.dealerIndex);
-    this._log(`── Betting ${next.slice(-1)} ──`);
+    this._log(`-- Betting ${next.slice(-1)} --`);
+  }
+
+  /** UI用: 現在の役をリアルタイム評価（カードがあるときは常に） */
+  evaluateCurrentHand(playerId) {
+    const p = this.players.find(pl => pl.id === playerId);
+    if (!p || !p.hand || p.hand.length === 0) return null;
+    try { return this.evaluateHand(p.hand); } catch(e) { return null; }
   }
 
   // ── ショーダウン ──────────────────────────────────────────
